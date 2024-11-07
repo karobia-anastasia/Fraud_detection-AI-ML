@@ -1,0 +1,92 @@
+{% include 'nav.html' %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <style>
+        .dashboard-container {
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+
+        .graph-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .statistics {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+
+        .statistics div {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            text-align: center;
+            width: 30%;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <h1>Dashboard</h1>
+
+        <!-- Display transaction statistics -->
+        <div class="statistics">
+            <div>
+                <h2>Total Transactions</h2>
+                <p>{{ total_transactions }}</p>
+            </div>
+            <div>
+                <h2>Fraudulent Transactions</h2>
+                <p>{{ fraud_transactions }}</p>
+            </div>
+        </div>
+
+        <!-- Display graph -->
+        <div class="graph-container">
+            <h2>Transactions per Month</h2>
+            <img src="data:image/png;base64,{{ graph_image }}" alt="Transactions per Month">
+        </div>
+
+        <!-- Recent transactions table -->
+        <h3>Recent Transactions</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Step</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                    <th>Fraud</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transaction in transactions %}
+                    <tr>
+                        <td>{{ transaction.step }}</td>
+                        <td>{{ transaction.type }}</td>
+                        <td>{{ transaction.amount }}</td>
+                        <td>{{ transaction.isFraud }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="4">No transactions available.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

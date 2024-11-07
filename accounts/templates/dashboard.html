@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fraud Detection Dashboard</title>
+</head>
+<body>
+    <h1>Welcome to the Fraud Detection Dashboard</h1>
+    <p>This is where users will interact with the fraud detection system.</p>
+    <a href="{% url 'logout' %}">Logout</a>
+
+
+
+    <!-- Display error message if data is not available -->
+    {% if error %}
+        <p>{{ error }}</p>
+    {% else %}
+        <!-- Summary statistics table -->
+        <h2>Data Summary</h2>
+        <div>{{ summary|safe }}</div>
+
+        <!-- Class distribution plot -->
+        <h2>Class Distribution</h2>
+        <img src="{% static class_plot %}" alt="Class Distribution Plot">
+    {% endif %}
+</body>
+</html>
