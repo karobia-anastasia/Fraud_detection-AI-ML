@@ -23,7 +23,7 @@
             padding: 10px 0;
             position: fixed;
             top: 0;
-            width: 100%;
+            width: 100%!important;
             z-index: 1000;
             flex-wrap: wrap; /* Allow items to wrap in small screens */
         }
@@ -103,12 +103,11 @@
 <!-- Navbar -->
 <div class="register">
     <ul class="mytop-navi">
-        <li class="nav-list"><a href="{% url 'dashboard' %}">Dashboard</a></li>
-        <li class="nav-list"><a href="{% url 'transactions' %}">Transactions</a></li>
-        <li class="nav-list"><a href="{% url 'data_analysis' %}">Data Analysis</a></li>
 
-        <li class="nav-list"><a href="{% url 'upload_file' %}">Upload File</a></li>
-        <li class="nav-list"><a href="{% url 'input_transaction' %}">Add Transaction</a></li>
+        <li class="nav-list"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+        <li class="nav-list"><a href="{% url 'data_analysis' %}">Prediction</a></li>
+        <li class="nav-list"><a href="{% url 'transactions' %}">Transactions</a></li>
+        <li class="nav-list"><a href="{% url 'upload_file' %}">Add Transaction</a></li>
         <li class="nav-list logout"> <a href="{% url 'account:logout' %}">logout</a></li>
 
     </ul>

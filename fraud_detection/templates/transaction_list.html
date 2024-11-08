@@ -40,7 +40,7 @@
                                 <td title="{{ transaction.nameDest }}">{{ transaction.nameDest }}</td>
                                 <td title="{{ transaction.oldbalanceDest }}">{{ transaction.oldbalanceDest }}</td>
                                 <td title="{{ transaction.newbalanceDest }}">{{ transaction.newbalanceDest }}</td>
-                                <td title="{{ transaction.isFraud }}">{{ transaction.isFraud }}</td>
+                                <td title="{{ transaction.isFraud }}">{{ transaction.isFraud|yesno:"Yes,No" }}</td>
                             </tr>
                         {% empty %}
                             <tr>
@@ -55,8 +55,8 @@
             <div class="pagination">
                 <span class="step-links">
                     {% if page_obj.has_previous %}
-                        <a href="?page=1">&laquo; first</a>
-                        <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+                        <a href="?page=1">&laquo; First</a>
+                        <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
                     {% endif %}
 
                     <span class="current">
@@ -64,8 +64,8 @@
                     </span>
 
                     {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}">next</a>
-                        <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+                        <a href="?page={{ page_obj.next_page_number }}">Next</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}">Last &raquo;</a>
                     {% endif %}
                 </span>
             </div>
@@ -124,7 +124,6 @@
             width: 100%;
             border-collapse: collapse;
             table-layout: auto; 
-
         }
 
         th, td {

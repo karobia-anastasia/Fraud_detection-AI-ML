@@ -1,72 +1,129 @@
+{% include 'nav.html' %}
+
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data Analysis Report</title>
-    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <title>Prediction Results</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #6c4e8b;
+        }
+
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #6c4e8b;
+            color: white;
+        }
+
+        /* ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        ul li {
+            margin-bottom: 10px;
+        } */
+
+        .summary {
+            font-weight: bold;
+        }
+
+        .pagination {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .pagination a {
+            margin: 0 5px;
+            padding: 10px;
+            background-color: #6c4e8b;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+
+        .pagination a:hover {
+            background-color: #4a347b;
+        }
+    </style>
 </head>
+
 <body>
-    <h1>Data Analysis Report</h1>
 
-    <h2>Statistics</h2>
-    <pre>{{ stats }}</pre>
+    <h1>Prediction Results (Table View)</h1>
 
-    <h2>Fraud Count</h2>
-    <ul>
-        {% for key, value in fraud_count.items %}
-            <li>{{ key }}: {{ value }}</li>
-        {% endfor %}
-    </ul>
+    <h3>Model Performance</h3>
+    <p><span class="summary">Accuracy:</span> {{ report.accuracy }}</p>
+    <p><span class="summary">Precision:</span> {{ report.precision }}</p>
+    <p><span class="summary">Recall:</span> {{ report.recall }}</p>
+    <p><span class="summary">F1-Score:</span> {{ report.f1_score }}</p>
 
-    <h2>Model Results</h2>
-    <pre>{{ model_results }}</pre>
-
-    <h2>Training Results</h2>
-    <pre>{{ training_results }}</pre>
-
-    <h2>Model Optimization Results</h2>
-    <ul>
-        {% for model, accuracy in optimization_results.items %}
-            <li>{{ model }}: {{ accuracy }}</li>
-        {% endfor %}
-    </ul>
-
-    <h2>Best Hyperparameters</h2>
-    <p>Best Hyperparameters: {{ optimization_results.Best_Hyperparameters }}</p>
-
-    <h2>Real-Time Predictions</h2>
-    <div id="real-time-results">
-        {% if latest_predictions %}
-            {% for prediction in latest_predictions %}
-                <p>
-                    Transaction ID: {{ prediction.id }},
-                    Amount: {{ prediction.amount }},
-                    Fraud: {{ prediction.isFraud }},
-                    Timestamp: {{ prediction.timestamp }},
-                    User ID: {{ prediction.nameOrig }}
-                </p>
+    <h3>Prediction Data</h3>
+ 
+    <h3>Prediction Results Table</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Step</th>
+                <th>Amount</th>
+                <th>Prediction</th>
+                <th>Prediction Label</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for transaction in page_obj %}
+                <tr>
+                    <td>{{ transaction.step }}</td>
+                    <td>{{ transaction.amount }}</td>
+                    <td>{{ transaction.prediction }}</td>
+                    <td>{{ transaction.prediction_label }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="4" style="text-align: center;">No prediction data available.</td>
+                </tr>
             {% endfor %}
-        {% else %}
-            <p>No predictions yet.</p>
+        </tbody>
+    </table>
+
+    <!-- Pagination Controls -->
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+            <a href="?page=1">&laquo; First</a>
+            <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
+        {% endif %}
+
+        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">Next</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}">Last &raquo;</a>
         {% endif %}
     </div>
 
-    <script>
-        // Function to refresh the real-time predictions every 5 seconds
-        setInterval(() => {
-            const xhr = new XMLHttpRequest();
-            xhr.open("GET", window.location.href, true);
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4 && xhr.status === 200) {
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(xhr.responseText, "text/html");
-                    const newResults = doc.querySelector("#real-time-results").innerHTML;
-                    document.querySelector("#real-time-results").innerHTML = newResults;
-                }
-            };
-            xhr.send();
-        }, 5000);
-    </script>
 </body>
+
 </html>

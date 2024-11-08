@@ -1,59 +1,75 @@
 import pandas as pd
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
-from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, LabelEncoder, OneHotEncoder
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+from sklearn.ensemble import RandomForestClassifier
 
-def preprocess_data(data):
-    """Preprocess the data by handling missing values, normalizing, and feature engineering."""
+def clean_data(df):
+
+    numerical_cols = df.select_dtypes(include=['float64', 'int64']).columns
+    for col in numerical_cols:
+        df[col] = pd.to_numeric(df[col], errors='coerce') 
+        df[col].fillna(df[col].median(), inplace=True)  
+
+    categorical_cols = df.select_dtypes(include=['object']).columns
+    for col in categorical_cols:
+        df[col] = df[col].astype(str).str.strip() 
+        df[col].fillna(df[col].mode()[0], inplace=True)
+
+    boolean_cols =  ['isFraud','isFlaggedFraud']
+    for col in boolean_cols:
+        if col in df.columns:
+            df[col] = df[col].astype(int)
+
+    df = pd.get_dummies(df, columns=categorical_cols, drop_first=True)
+
+    return df
+
+
+
+def split_data(df):
+    # Ensure 'isFraud' column exists
+    if 'isFraud'not in df.columns:
+        raise KeyError("'isFraud' column not found in the dataset")
+
+    X = df.drop('isFraud', axis=1)  # Features
+    y = df['isFraud'].astype(int)   # Target (convert to binary if needed)
+
+    # Split data
+    # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    return train_test_split(X, y, test_size=0.2, random_state=42)
+
+
+
+def train_model(X_train, y_train, X_test, y_test):
+    model = LogisticRegression(max_iter=1000)  # Increase max_iter for larger datasets
+    model.fit(X_train, y_train)
     
-    print("Missing values before preprocessing:\n", data.isnull().sum())
+    # Make predictions
+    y_pred = model.predict(X_test)
     
-    # Drop duplicates
-    data = data.drop_duplicates()
+    # Evaluate the model
+    accuracy = accuracy_score(y_test, y_pred)
+    print(f"Logistic Regression Model Accuracy: {accuracy * 100:.2f}%")
+    return model
 
-    # Identify numeric and categorical features
-    numeric_features = ['amount', 'oldbalanceOrg', 'newbalanceOrig', 'oldbalanceDest', 'newbalanceDest']
-    categorical_features = ['type']
 
-    # Check that the expected columns exist
-    for col in numeric_features + categorical_features:
-        if col not in data.columns:
-            raise ValueError(f"The column '{col}' is missing from the data.")
+def train_random_forest(X_train, y_train, X_test, y_test):
+    model = RandomForestClassifier(n_estimators=100, random_state=42)
+    model.fit(X_train, y_train)
+    
+    # Make predictions
+    y_pred = model.predict(X_test)
+    
+    # Evaluate the model
+    accuracy = accuracy_score(y_test, y_pred)
+    print(f"Random Forest Model Accuracy: {accuracy * 100:.2f}%")
+    return model
 
-    # Print data types to debug issues
-    print("Data types before preprocessing:\n", data.dtypes)
 
-    # Create a column transformer for preprocessing
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ('num', Pipeline([
-                ('imputer', SimpleImputer(strategy='mean')),  # Impute missing values with the mean
-                ('scaler', StandardScaler())  # Normalize numeric features
-            ]), numeric_features),
-            
-            ('cat', Pipeline([
-                ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),  # Handle missing categorical values
-                ('onehot', OneHotEncoder(drop='first', handle_unknown='ignore'))  # One-hot encode categorical features
-            ]), categorical_features)
-        ],
-        remainder='drop'  # Drop any columns that are not listed in the transformers
-    )
-
-    # Apply preprocessing
-    processed_data = preprocessor.fit_transform(data)
-
-    # Get feature names after transformation
-    numeric_feature_names = numeric_features
-    categorical_feature_names = list(preprocessor.named_transformers_['cat'].named_steps['onehot'].get_feature_names_out(categorical_features))
-
-    # Combine feature names
-    feature_names = numeric_feature_names + categorical_feature_names
-
-    # Convert back to DataFrame
-    processed_data = pd.DataFrame(processed_data, columns=feature_names)
-
-    print("Data shape after preprocessing:", processed_data.shape)
-    print("\nMissing values after preprocessing:\n", processed_data.isnull().sum())
-
-    return processed_data
+def evaluate_model(y_test, y_pred):
+    # Evaluate using confusion matrix and classification report
+    cm = confusion_matrix(y_test, y_pred)
+    print(f"Confusion Matrix:\n{cm}")
+    print(f"Classification Report:\n{classification_report(y_test, y_pred)}")

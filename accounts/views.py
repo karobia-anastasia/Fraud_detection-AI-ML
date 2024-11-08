@@ -32,7 +32,7 @@ def user_login(request):
             if user is not None:
                 login(request, user)
                 messages.success(request, f'Welcome back, {username}!')
-                return redirect('dashboard')
+                return redirect('transactions')
             else:
                 messages.error(request, 'Invalid username or password.')
         else:
