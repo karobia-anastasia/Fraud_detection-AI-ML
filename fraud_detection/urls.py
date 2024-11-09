@@ -8,6 +8,7 @@ urlpatterns = [
     # path('input_transaction/', input_transaction, name='input_transaction'),
     path('upload_file/', upload_data, name='upload_file'),
     path('',transaction_list, name='transactions'),
+    path('detect-fraud/', detect_fraud, name='detect_fraud'),
 
 
 

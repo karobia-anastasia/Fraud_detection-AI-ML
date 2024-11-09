@@ -50,17 +50,16 @@
             color: #6c4e8b;
         }
 
-        /* Container for content */
         .container {
             max-width: 1100px;
             margin: 0 auto;
             background-color: white;
             padding: 30px;
+            margin-top: 20px;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
-        /* Prediction Data & Performance */
         .prediction-data {
             background-color: #f9f9f9;
             padding: 20px;
@@ -76,6 +75,20 @@
             padding-left: 10px;
         }
 
+        /* Flexbox for Pairing Data into Two Rows */
+        .flex-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px; /* Space between columns */
+            justify-content: space-between;
+        }
+
+        .flex-item {
+            flex: 1;
+            min-width: 280px;
+            max-width: 45%; 
+        }
+
         /* Images */
         img {
             max-width: 100%;
@@ -84,7 +97,6 @@
             margin-bottom: 20px;
         }
 
-        /* Buttons for interaction (if needed in the future) */
         .btn {
             background-color: #6c4e8b;
             color: white;
@@ -119,6 +131,15 @@
             ul li {
                 font-size: 1em;
             }
+
+            .flex-container {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .flex-item {
+                max-width: 100%;
+            }
         }
     </style>
 </head>
@@ -128,35 +149,35 @@
     <div class="container">
         <h1>Prediction Reports (Graphical View)</h1>
 
-        <div class="prediction-data">
-            <h3>Model Performance</h3>
-            <p><strong>Accuracy:</strong> {{ report.accuracy }}</p>
-            <p><strong>Precision:</strong> {{ report.precision }}</p>
-            <p><strong>Recall:</strong> {{ report.recall }}</p>
-            <p><strong>F1-Score:</strong> {{ report.f1_score }}</p>
+        <div class="flex-container">
+            <div class="flex-item prediction-data">
+                <h3>Model Performance</h3>
+                <p><strong>Accuracy:</strong> {{ report.accuracy }}</p>
+                <p><strong>Precision:</strong> {{ report.precision }}</p>
+                <p><strong>Recall:</strong> {{ report.recall }}</p>
+                <p><strong>F1-Score:</strong> {{ report.f1_score }}</p>
+            </div>
+
+            <div class="flex-item prediction-data">
+                <h3>Prediction Data</h3>
+                <ul>
+                    <li><strong>Non-Fraud</strong>: {{ prediction_data.data.0 }} predictions</li>
+                    <li><strong>Fraud</strong>: {{ prediction_data.data.1 }} predictions</li>
+                </ul>
+            </div>
         </div>
 
-        <div class="prediction-data">
-            <h3>Prediction Data</h3>
-            <ul>
-                <li><strong>Non-Fraud</strong>: {{ prediction_data.data.0 }} predictions</li>
-                <li><strong>Fraud</strong>: {{ prediction_data.data.1 }} predictions</li>
-            </ul>
+        <div class="flex-container">
+            <div class="flex-item">
+                <h3>Confusion Matrix</h3>
+                <img src="data:image/png;base64,{{ confusion_image }}" alt="Confusion Matrix">
+            </div>
+            <div class="flex-item">
+                <h3>Prediction Counts (Fraud vs Non-Fraud)</h3>
+                <img src="data:image/png;base64,{{ prediction_chart }}" alt="Prediction Counts Chart">
+            </div>
         </div>
-        <center>
-<div>
-<h3>Confusion Matrix</h3>
-        <img src="data:image/png;base64,{{ confusion_image }}" alt="Confusion Matrix">
     </div>
-</center>
-<center>
-    <div>
-        <h3>Prediction Counts (Fraud vs Non-Fraud)</h3>
-        <img src="data:image/png;base64,{{ prediction_chart }}" alt="Prediction Counts Chart">
-    </div>
-</center>
-
-</div>
 
 </body>
 

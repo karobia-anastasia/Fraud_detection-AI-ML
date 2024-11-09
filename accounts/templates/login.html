@@ -1,106 +1,131 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    <head>
-        <style>
-            /* Global Reset for margin and padding */
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
+<head>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-            /* Body styling */
-            body {
-                font-family: Arial, sans-serif;
-                background-color: white;
-                color: white;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                height: 100vh;
-            }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7fc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #000000;
+        }
 
-            /* Login Container */
-            .login-container {
-                background-color: #6C4E8B;                ;
-                padding: 30px;
-                border-radius: 8px;
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-                width: 100%;
-                max-width: 400px;
-            }
+        .login-container {
+            background-color: #6C4E8B;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
 
-            /* Heading */
-            h2 {
-                text-align: center;
-                margin-bottom: 20px;
-                color: white;
-            }
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: white;
+        }
 
-            /* Form Group */
-            .form-group {
-                margin-bottom: 20px;
-            }
+        .form-group {
+            margin-bottom: 20px;
+        }
 
-            /* Form Inputs */
-            input[type="text"], input[type="password"], input[type="email"] {
-                width: 100%;
-                padding: 7px;
-                margin: 4px 0;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                font-size: 13px;
-                outline: none;
-            }
+        input[type="text"], input[type="password"], input[type="email"] {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            outline: none;
+            background-color: #f9f9f9;
+        }
 
-            input[type="text"]:focus, input[type="password"]:focus, input[type="email"]:focus {
-                border-color: #6c4e8b;
-            }
+        input[type="text"]:focus, input[type="password"]:focus, input[type="email"]:focus {
+            border-color: #6c4e8b;
+            background-color: white;
+        }
 
-            /* Login Button */
-            .btn-login {
-                width: 100%;
-                padding: 12px;
-                color: white;
-                font-size: 16px;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-                box-shadow:0px 2px 4px  #333;
-            }
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            background-color: #6c4e8b;
+            color: white;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
 
-            .btn-login:hover {
-                background-color: #6c4e8b;
-                color: white;
-            }
+        .btn-login:hover {
+            background-color: #4b3669;
+        }
 
-            /* Additional Styles */
-            a {
-                color: #6c4e8b;
-                text-decoration: none;
-            }
+        a {
+            color: #6c4e8b;
+            text-decoration: none;
+        }
 
-            a:hover {
-                text-decoration: underline;
-            }
+        a:hover {
+            text-decoration: underline;
+        }
 
-            button[type="submit"] {
-                cursor: pointer;
-                border: none;
-                background: none;
-            }
-        </style>
-    </head>
+        button[type="submit"] {
+            cursor: pointer;
+            border: none;
+            background: none;
+        }
 
-    <div class="login-container">
-        <h2>Login</h2>
-        <form method="POST" class="login-form">
-            {% csrf_token %}
-            <div class="form-group">
-                {{ form.as_p }}
+        .error-message {
+            color: red;
+            font-size: 14px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        input::placeholder {
+            color: #6c4e8b;
+            opacity: 0.7;
+        }
+
+    </style>
+</head>
+
+<div class="login-container">
+    <h2>Login</h2>
+    <form method="POST" class="login-form">
+        {% csrf_token %}
+        
+        {% if form.errors %}
+            <div class="error-message">
+                {% for field in form %}
+                    {% for error in field.errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                {% endfor %}
             </div>
-            <button type="submit" class="btn-login">Login</button>
-        </form>
-    </div>
+        {% endif %}
+        
+        <div class="form-group">
+            <label for="{{ form.username.id_for_label }}">Username</label>
+            {{ form.username }}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.password.id_for_label }}">Password</label>
+            {{ form.password }}
+        </div>
+
+        <button type="submit" class="btn-login">Login</button>
+    </form>
+</div>
 {% endblock %}

@@ -1,0 +1,20 @@
+<!-- detect_fraud.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Transaction Fraud Detection</title>
+</head>
+<body>
+    <h1>Transaction Fraud Detection</h1>
+
+    <form method="POST">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Detect Fraud</button>
+    </form>
+
+    {% if result %}
+        <h2>Prediction: {{ result }}</h2>
+    {% endif %}
+</body>
+</html>

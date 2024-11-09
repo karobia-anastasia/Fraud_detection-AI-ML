@@ -1,102 +1,6 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    <head>
-        <style>
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
-
-            body {
-                font-family: Arial, sans-serif;
-                background-color: white;
-                color: white;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                height: 100vh;
-            }
-
-            .register-container {
-                background-color: #6C4E8B;                ;
-                padding: 30px;
-                border-radius: 8px;
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-                width: 100%;
-                max-width: 400px;
-            }
-
-            h2 {
-                text-align: center;
-                margin-bottom: 20px;
-                color: white;
-            }
-
-            .form-group {
-                margin-bottom: 20px;
-            }
-
-            input[type="text"], input[type="password"], input[type="email"] {
-                width: 100%;
-                padding: 7px;
-                margin: 4px 0;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                font-size: 11px;
-                outline: none;
-            }
-
-            input[type="text"]:focus, input[type="password"]:focus, input[type="email"]:focus {
-                border-color: #6c4e8b;
-            }
-
-            .btn-register {
-                width: 100%;
-                padding: 12px;
-                color: white;
-                font-size: 16px;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-                box-shadow:0px 2px 4px  #333;
-            }
-
-            .btn-register:hover {
-                background-color: #80629f;
-                color: white;
-            }
-
-            .error-message {
-                color: red;
-                font-size: 12px;
-                margin-top: 10px;
-            }
-
-            .success-message {
-                color: green;
-                font-size: 12px;
-                margin-bottom: 20px;
-                text-align: center;
-            }
-                        a {
-                color: #6c4e8b;
-                text-decoration: none;
-            }
-
-            a:hover {
-                text-decoration: underline;
-            }
-
-            button[type="submit"] {
-                cursor: pointer;
-                border: none;
-                background: none;
-            }
-        </style>
-    </head>
-
     <div class="register-container">
         <h2>Register</h2>
 
@@ -111,12 +15,25 @@
 
         <form method="POST">
             {% csrf_token %}
+            
             <div class="form-group">
                 <label for="{{ form.username.id_for_label }}">Username</label>
                 {{ form.username }}
                 {% if form.username.errors %}
                     <div class="error-message">
                         {% for error in form.username.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.email.id_for_label }}">Email</label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                    <div class="error-message">
+                        {% for error in form.email.errors %}
                             <p>{{ error }}</p>
                         {% endfor %}
                     </div>
@@ -157,5 +74,101 @@
 
             <button type="submit" class="btn-register">Register</button>
         </form>
+        <style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f7fc;
+    color: #000000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.register-container {
+    background-color: #6C4E8B;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 400px;
+}
+
+h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: white;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+input[type="text"], input[type="password"], input[type="email"] {
+    width: 100%;
+    padding: 7px;
+    margin: 4px 0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 13px;
+    outline: none;
+}
+
+input[type="text"]:focus, input[type="password"]:focus, input[type="email"]:focus {
+    border-color: #6c4e8b;
+}
+
+.btn-register {
+    width: 100%;
+    padding: 12px;
+    color: white;
+    font-size: 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0px 2px 4px #333;
+}
+
+.btn-register:hover {
+    background-color: #80629f;
+    color: white;
+}
+
+.error-message {
+    color: red;
+    font-size: 12px;
+    margin-top: 10px;
+}
+
+.success-message {
+    color: green;
+    font-size: 12px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+a {
+    color: #6c4e8b;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+button[type="submit"] {
+    cursor: pointer;
+    border: none;
+    background: none;
+}
+
+
+        </style>
     </div>
 {% endblock %}

@@ -1,21 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
     <style>
+        /* Reset all default margins and paddings */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
+        /* Navbar styles */
         .mytop-navi {
             margin: 0;
             padding: 0;
-            background-color:#6C4E8B  ;;
+            background-color: #6C4E8B;
             list-style: none;
             display: flex;
             justify-content: center;
@@ -23,19 +26,25 @@
             padding: 10px 0;
             position: fixed;
             top: 0;
-            width: 100%!important;
+            left: 0; /* Ensures navbar starts at the left of the screen */
+            width: 100%; /* Ensures navbar takes full width */
             z-index: 1000;
-            flex-wrap: wrap; /* Allow items to wrap in small screens */
+            flex-wrap: wrap;
+            transition: all 0.3s ease;
+            margin-bottom: 20px; /* Added margin-bottom to create space below the navbar */
         }
 
+        /* Navbar item styles */
         .nav-list {
             padding: 4px 2px;
         }
-        .nav-list.logout a{
-            color:black ;
+
+        .nav-list.logout a {
+            color: black;
         }
+
         .nav-list.logout a:hover {
-            color: #6C4E8B  ;
+            color: #6C4E8B;
         }
 
         .nav-list a {
@@ -50,7 +59,7 @@
 
         .nav-list a:hover {
             background-color: white;
-            color: #6C4E8B  ;
+            color: #6C4E8B;
         }
 
         body {
@@ -70,26 +79,27 @@
             position: absolute;
             top: 15px;
             right: 20px;
-
         }
 
         .hamburger div {
             width: 30px;
             height: 4px;
-            background-color: rgb(151, 107, 151);;
+            background-color: rgb(151, 107, 151);
             border-radius: 5px;
         }
 
         /* Media Query for Mobile */
         @media (max-width: 768px) {
             .mytop-navi {
-                display: none;
+                display: none; /* Hide navbar items on mobile */
                 flex-direction: column;
                 width: 100%;
+                gap: 15px;
+                align-items: center;
             }
 
             .mytop-navi.active {
-                display: flex;
+                display: flex; /* Show navbar when active */
             }
 
             .hamburger {
@@ -98,18 +108,17 @@
         }
     </style>
 </head>
+
 <body>
 
 <!-- Navbar -->
 <div class="register">
     <ul class="mytop-navi">
-
         <li class="nav-list"><a href="{% url 'dashboard' %}">Dashboard</a></li>
         <li class="nav-list"><a href="{% url 'data_analysis' %}">Prediction</a></li>
         <li class="nav-list"><a href="{% url 'transactions' %}">Transactions</a></li>
         <li class="nav-list"><a href="{% url 'upload_file' %}">Add Transaction</a></li>
-        <li class="nav-list logout"> <a href="{% url 'account:logout' %}">logout</a></li>
-
+        <li class="nav-list logout"><a href="{% url 'account:logout' %}">Logout</a></li>
     </ul>
 
     <!-- Hamburger Icon -->
@@ -124,9 +133,10 @@
     // Toggle the navigation menu for mobile
     function toggleMenu() {
         const nav = document.querySelector('.mytop-navi');
-        nav.classList.toggle('active');
+        nav.classList.toggle('active'); // Add or remove the active class to show/hide menu
     }
 </script>
 
 </body>
+
 </html>

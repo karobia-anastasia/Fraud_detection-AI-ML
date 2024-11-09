@@ -1,14 +1,14 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth import login, authenticate, logout
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count
 from datetime import datetime, timedelta
+from accounts.forms import LoginForm, UserRegisterForm
 
 def register(request):
     if request.method == 'POST':
-        form = UserCreationForm(request.POST)
+        form = UserRegisterForm(request.POST)
         if form.is_valid():
             # Save the new user
             form.save()
@@ -17,14 +17,13 @@ def register(request):
             messages.success(request, f'Account created for {username}!')
             return redirect('login') 
     else:
-        form = UserCreationForm()
+        form = UserRegisterForm()
     
     return render(request, 'register.html', {'form': form})
 
-# User Login View
 def user_login(request):
     if request.method == 'POST':
-        form = AuthenticationForm(request, data=request.POST)
+        form = LoginForm(request, data=request.POST)
         if form.is_valid():
             username = form.cleaned_data.get('username')
             password = form.cleaned_data.get('password')
@@ -38,7 +37,7 @@ def user_login(request):
         else:
             messages.error(request, 'Invalid credentials.')
     
-    form = AuthenticationForm()
+    form = LoginForm()
     return render(request, 'login.html', {'form': form})
 
 # User Logout View
