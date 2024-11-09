@@ -141,4 +141,4 @@ STATICFILES_DIRS = [
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_PATH = os.path.join(BASE_DIR, 'models', 'fraud_detection_model.pkl')
 
-LOGIN_URL = 'users:login'
+LOGIN_URL = 'account:login'

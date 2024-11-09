@@ -73,6 +73,8 @@
             {% endif %}
 
             <button type="submit" class="btn-register">Register</button>
+            <div class="linked">        <a href="{% url 'account:login' %}">Login </a>
+            </div>
         </form>
         <style>
 * {
@@ -167,7 +169,14 @@ button[type="submit"] {
     border: none;
     background: none;
 }
-
+.linked a{
+    color: #f4f7fc;
+    text-align: center;
+    font-size: 10px;
+}
+.linked{
+    text-align: center;
+}
 
         </style>
     </div>

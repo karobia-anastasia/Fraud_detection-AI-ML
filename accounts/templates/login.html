@@ -96,7 +96,14 @@
             color: #6c4e8b;
             opacity: 0.7;
         }
-
+        .linked{
+            text-align: center;
+        }
+.linked a{
+    color: #f4f7fc;
+    text-align: center;
+    font-size: 10px;
+}
     </style>
 </head>
 
@@ -126,6 +133,8 @@
         </div>
 
         <button type="submit" class="btn-login">Login</button>
+        <div class="linked">        <a href="{% url 'account:register' %}">Register </a>
+        </div>
     </form>
 </div>
 {% endblock %}
