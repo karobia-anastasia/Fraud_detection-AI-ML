@@ -2,6 +2,8 @@ import os
 import joblib
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from xgboost import XGBClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from django.conf import settings
@@ -53,18 +55,56 @@ def split_data(df):
 
     return train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Train and evaluate Random Forest model
-def train_and_evaluate_random_forest(X_train, y_train, X_test, y_test):
-    model = RandomForestClassifier(n_estimators=100, random_state=42)
+
+# Train and evaluate the model based on the type (RandomForest, LogisticRegression, XGBoost)
+def train_and_evaluate_model(X_train, y_train, X_test, y_test, model_type='RandomForest'):
+    if model_type == 'RandomForest':
+        model = RandomForestClassifier(n_estimators=100, random_state=42)
+    elif model_type == 'LogisticRegression':
+        model = LogisticRegression(random_state=42)
+    elif model_type == 'XGBoost':
+        model = XGBClassifier(random_state=42)
+    else:
+        raise ValueError("Unsupported model type")
+
+    # Train the model
     model.fit(X_train, y_train)
+    
+    # Make predictions
     y_pred = model.predict(X_test)
 
+    # Calculate accuracy
     accuracy = accuracy_score(y_test, y_pred)
-    print(f"Random Forest Model Accuracy: {accuracy * 100:.2f}%")
-    
-    # Return the trained model
+    print(f"{model_type} Model Accuracy: {accuracy * 100:.2f}%")
+
     return model
 
+
+# Save the trained model
+def save_model(model, model_name='fraud_detection_model'):
+    model_path = os.path.join(settings.BASE_DIR, 'models', f'{model_name}.pkl')
+
+    # Save the model to a file
+    joblib.dump(model, model_path)
+    print(f"Model saved to {model_path}")
+
+# Load the trained model
+def load_model(model_name='fraud_detection_model'):
+    model_path = os.path.join(settings.BASE_DIR, 'models', f'{model_name}.pkl')
+
+    # Check if the model exists
+    if os.path.exists(model_path):
+        try:
+            # Try to load the model
+            model = joblib.load(model_path)
+            return model
+        except EOFError:
+            # If EOFError occurs (corrupted model file), raise an error
+            raise EOFError("Model file appears to be corrupted. Please re-train the model.")
+    else:
+        raise FileNotFoundError("Model not found. Please ensure the model is saved and available.")
+
+# Preprocess the input data for prediction
 
 def align_columns(df, model):
     # Get the features that the model was trained on (stored in the model)
@@ -80,31 +120,6 @@ def align_columns(df, model):
 
     return df
 
-# Save the trained model and scaler
-def save_model_and_scaler(model):
-    model_path = os.path.join(settings.BASE_DIR, 'models', 'fraud_detection_model.pkl')
-
-    # Save the model to a file
-    joblib.dump(model, model_path)
-    print(f"Model saved to {model_path}")
-
-# Load the model for prediction
-def load_model():
-    model_path = os.path.join(settings.BASE_DIR, 'models', 'fraud_detection_model.pkl')
-
-    # Check if the model exists
-    if os.path.exists(model_path):
-        try:
-            # Try to load model
-            model = joblib.load(model_path)
-            return model
-        except EOFError:
-            # If EOFError occurs (corrupted model file), raise error
-            raise EOFError("Model file appears to be corrupted. Please re-train the model.")
-    else:
-        raise FileNotFoundError("Model not found. Please ensure the model is saved and available.")
-
-# Preprocess the input data for prediction
 def preprocess_for_prediction(data):
     # Assuming `data` is a dictionary with relevant features
     df = pd.DataFrame([data])
@@ -122,7 +137,7 @@ def preprocess_for_prediction(data):
     return df
 
 # Prediction function
-def predict(step, transaction_type, amount, name_orig, old_balance_orig, new_balance_orig, name_dest, old_balance_dest, new_balance_dest):
+def predict(step, transaction_type, amount, name_orig, old_balance_orig, new_balance_orig, name_dest, old_balance_dest, new_balance_dest, model_type='RandomForest'):
     # Create a dictionary of the transaction data
     transaction_data = {
         'step': step,
@@ -137,7 +152,7 @@ def predict(step, transaction_type, amount, name_orig, old_balance_orig, new_bal
     }
 
     # Load the model
-    model = load_model()
+    model = load_model(model_name=model_type)
 
     # Preprocess the data (no scaler needed)
     processed_data = preprocess_for_prediction(transaction_data)
@@ -147,3 +162,4 @@ def predict(step, transaction_type, amount, name_orig, old_balance_orig, new_bal
 
     # Return the prediction result (fraudulent or not)
     return "Fraudulent" if prediction[0] == 1 else "Non-Fraudulent"
+

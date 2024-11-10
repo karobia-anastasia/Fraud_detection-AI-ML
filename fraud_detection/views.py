@@ -23,7 +23,7 @@ from sklearn.ensemble import RandomForestClassifier
 import logging
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
-from .data_cleaning import clean_data, split_data, train_and_evaluate_random_forest, save_model_and_scaler, load_model
+from .data_cleaning import clean_data, split_data, load_model
 
 
 logger = logging.getLogger(__name__)
@@ -94,8 +94,8 @@ def upload_file(request):
                 
             except FileNotFoundError:
                 # If model doesn't exist, train the model
-                model = train_and_evaluate_random_forest(cleaned_df)  # Train the model here
-                save_model_and_scaler(model, None)  # Save the trained model (no scaler in this case)
+                model = train_and_evaluate_model(cleaned_df)  # Train the model here
+                save_model(model, None)  # Save the trained model (no scaler in this case)
 
                 # After training, redirect to the transactions page
                 return redirect('transactions')  # Redirect to transactions page after training
