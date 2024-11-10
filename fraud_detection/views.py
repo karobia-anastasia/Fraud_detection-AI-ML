@@ -27,13 +27,20 @@ from .data_cleaning import clean_data, split_data, train_and_evaluate_random_for
 
 
 logger = logging.getLogger(__name__)
-
 def transaction_list(request):
-    transactions = Transaction.objects.all()
-    paginator = Paginator(transactions, 10)
+    transactions = Transaction.objects.all()  
+    
+    # Paginate the transactions
+    paginator = Paginator(transactions, 10)  # 10 per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+    
+    # Pass the page_obj to the template
     return render(request, 'transaction_list.html', {'page_obj': page_obj})
+
+# Setup logging
+logger = logging.getLogger(__name__)
+
 # Handle file upload and either train or predict
 def upload_file(request):
     if request.method == 'POST' and request.FILES['file']:
@@ -66,36 +73,42 @@ def upload_file(request):
 
             try:
                 # Try to load the existing model
-                model = load_model()
-                # If model exists, make predictions
-                predictions = model.predict(X_test)
-                accuracy = model.score(X_test, y_test)
-                logger.info(f"Model found. Accuracy: {accuracy * 100:.2f}%")
+                model = load_model()  # Only load the model, no scaler needed
+                logger.info("Model found, making predictions...")
+
+                # Align the input features with the model's expected features
+                cleaned_df = align_columns(cleaned_df, model)
+
+                # Make predictions
+                predictions = model.predict(cleaned_df)
+
+                # If you need to evaluate on a separate test set, you would also drop 'isFraud' here
+                if 'Fraud' in df.columns:
+                    accuracy = model.score(cleaned_df, df['Fraud'])  # Check accuracy, if 'Fraud' is in the test set
+                    logger.info(f"Model found. Accuracy: {accuracy * 100:.2f}%")
+                else:
+                    accuracy = "No accuracy calculation available (no test labels)."
+
+                # After processing, redirect to the transactions page with the predictions
+                return redirect('transactions')  # Use the URL name for the transaction list page
                 
-                # Return predictions and accuracy to the template
-                return render(request, 'transaction_list.html', {
-                    'accuracy': accuracy,
-                    'predictions': predictions,
-                    'description': description  # Send the description to the template
-                })
             except FileNotFoundError:
                 # If model doesn't exist, train the model
-                model = train_and_evaluate_random_forest(X_train, y_train, X_test, y_test)
-                save_model_and_scaler(model)  # Save the model for future predictions
-                
-                return render(request, 'transaction_list.html', {
-                    'accuracy': "Model trained successfully",
-                    'description': description
-                })
+                model = train_and_evaluate_random_forest(cleaned_df)  # Train the model here
+                save_model_and_scaler(model, None)  # Save the trained model (no scaler in this case)
+
+                # After training, redirect to the transactions page
+                return redirect('transactions')  # Redirect to transactions page after training
+
             except EOFError as e:
                 # Handle case where model file is corrupted
                 logger.error(f"Error loading model: {e}")
                 return render(request, 'error_page.html', {'error': f"Model file is corrupted. Please re-train the model."})
+
     else:
         form = UploadFileForm()
 
     return render(request, 'upload_file.html', {'form': form})
-
 
 def input_transaction(request):
     if request.method == 'POST':
@@ -176,7 +189,7 @@ def prediction_results(request):
     y = transaction_df['isFraud']
     report = classification_report(y, predictions, output_dict=True)
 
-    paginator = Paginator(transactions, 20)
+    paginator = Paginator(transactions, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 

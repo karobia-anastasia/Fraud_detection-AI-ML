@@ -65,6 +65,21 @@ def train_and_evaluate_random_forest(X_train, y_train, X_test, y_test):
     # Return the trained model
     return model
 
+
+def align_columns(df, model):
+    # Get the features that the model was trained on (stored in the model)
+    model_features = model.feature_names_in_  # This retrieves the original feature names from the trained model
+
+    # Add missing columns with default values (e.g., 0)
+    for col in model_features:
+        if col not in df.columns:
+            df[col] = 0  # Default value for missing columns
+    
+    # Remove any columns that the model doesn't expect (e.g., 'isFlaggedFraud' if it's in the input but not in the model)
+    df = df[model_features]  # Reorder columns to match the model's expected input order
+
+    return df
+
 # Save the trained model and scaler
 def save_model_and_scaler(model):
     model_path = os.path.join(settings.BASE_DIR, 'models', 'fraud_detection_model.pkl')

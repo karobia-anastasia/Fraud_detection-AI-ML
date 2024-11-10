@@ -1,4 +1,5 @@
 {% include 'nav.html' %}
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,73 +7,6 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transactions</title>
-</head>
-<body>
-    <div class="wrapper">
-        <div class="form">
-            <h1>Transactions</h1>
-            <!-- Transaction Table -->
-            <div class="table-container">
-                <table class="transaction-table">
-                    <thead>
-                        <tr>
-                            <th>Step</th>
-                            <th>Type</th>
-                            <th>Amount</th>
-                            <th>Name Orig</th>
-                            <th>Old Balance Orig</th>
-                            <th>New Balance Orig</th>
-                            <th>Name Dest</th>
-                            <th>Old Balance Dest</th>
-                            <th>New Balance Dest</th>
-                            <th>Fraud</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for transaction in page_obj %}
-                            <tr>
-                                <td title="{{ transaction.step }}">{{ transaction.step }}</td>
-                                <td title="{{ transaction.type }}">{{ transaction.type }}</td>
-                                <td title="{{ transaction.amount }}">{{ transaction.amount }}</td>
-                                <td title="{{ transaction.nameOrig }}">{{ transaction.nameOrig }}</td>
-                                <td title="{{ transaction.oldbalanceOrg }}">{{ transaction.oldbalanceOrg }}</td>
-                                <td title="{{ transaction.newbalanceOrig }}">{{ transaction.newbalanceOrig }}</td>
-                                <td title="{{ transaction.nameDest }}">{{ transaction.nameDest }}</td>
-                                <td title="{{ transaction.oldbalanceDest }}">{{ transaction.oldbalanceDest }}</td>
-                                <td title="{{ transaction.newbalanceDest }}">{{ transaction.newbalanceDest }}</td>
-                                <td title="{{ transaction.isFraud }}">{{ transaction.isFraud|yesno:"Yes,No" }}</td>
-                            </tr>
-                        {% empty %}
-                            <tr>
-                                <td colspan="10">No transactions available.</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Pagination Controls -->
-            <div class="pagination">
-                <span class="step-links">
-                    {% if page_obj.has_previous %}
-                        <a href="?page=1">&laquo; First</a>
-                        <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
-                    {% endif %}
-
-                    <span class="current">
-                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
-                    </span>
-
-                    {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}">Next</a>
-                        <a href="?page={{ page_obj.paginator.num_pages }}">Last &raquo;</a>
-                    {% endif %}
-                </span>
-            </div>
-
-        </div>
-    </div>
-
     <style>
         * {
             margin: 0;
@@ -211,5 +145,79 @@
             }
         }
     </style>
+</head>
+<body>
+
+    <div class="wrapper">
+        <div class="form">
+            <h1>Transactions</h1>
+
+            <!-- Transaction Table -->
+            <div class="table-container">
+                <table class="transaction-table">
+                    <thead>
+                        <tr>
+                            <th>Step</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Name Orig</th>
+                            <th>Old Balance Orig</th>
+                            <th>New Balance Orig</th>
+                            <th>Name Dest</th>
+                            <th>Old Balance Dest</th>
+                            <th>New Balance Dest</th>
+                            <th>Fraud</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in page_obj %}
+                            <tr>
+                                <td title="{{ transaction.step }}">{{ transaction.step }}</td>
+                                <td title="{{ transaction.type }}">{{ transaction.type }}</td>
+                                <td title="{{ transaction.amount }}">{{ transaction.amount }}</td>
+                                <td title="{{ transaction.nameOrig }}">{{ transaction.nameOrig }}</td>
+                                <td title="{{ transaction.oldbalanceOrg }}">{{ transaction.oldbalanceOrg }}</td>
+                                <td title="{{ transaction.newbalanceOrig }}">{{ transaction.newbalanceOrig }}</td>
+                                <td title="{{ transaction.nameDest }}">{{ transaction.nameDest }}</td>
+                                <td title="{{ transaction.oldbalanceDest }}">{{ transaction.oldbalanceDest }}</td>
+                                <td title="{{ transaction.newbalanceDest }}">{{ transaction.newbalanceDest }}</td>
+                                <td title="{{ transaction.isFraud }}">{{ transaction.isFraud|yesno:"Yes,No" }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="10">No transactions available.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination Controls -->
+            <div class="pagination">
+                <span class="step-links">
+                    {% if page_obj.has_previous %}
+                        <a href="?page=1" class="first-last">&laquo; First</a>
+                        <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                    {% else %}
+                        <span class="disabled">&laquo; First</span>
+                        <span class="disabled">Previous</span>
+                    {% endif %}
+
+                    <span class="current">
+                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+                    </span>
+
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}">Next</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}" class="first-last">Last &raquo;</a>
+                    {% else %}
+                        <span class="disabled">Next</span>
+                        <span class="disabled">Last &raquo;</span>
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
