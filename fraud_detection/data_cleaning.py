@@ -1,72 +1,46 @@
-
-def upload_and_train_model(request):
-    if request.method == 'POST' and request.FILES['file']:
-        file = request.FILES['file']
-        fs = FileSystemStorage()
-        filename = fs.save(file.name, file)
-        file_path = fs.path(filename)
-        
-        # Load the data based on the file extension
-        if file.name.endswith('.xlsx'):
-            df = pd.read_excel(file_path)
-        elif file.name.endswith('.csv'):
-            df = pd.read_csv(file_path)
-        else:
-            return render(request, 'upload_file.html', {'error': "Unsupported file type. Please upload a .csv or .xlsx file."})
-
-        # Clean and prepare the data
-        cleaned_df = clean_data(df)
-
-        # Split the data into training and testing sets
-        X_train, X_test, y_train, y_test = split_data(cleaned_df)
-
-        # Train and evaluate the Random Forest model
-        model = train_and_evaluate_random_forest(X_train, y_train, X_test, y_test)
-
-        # Calculate accuracy score directly
-        y_pred = model.predict(X_test)
-        accuracy = accuracy_score(y_test, y_pred) * 100  # Calculate accuracy as a percentage
-
-        # Optionally, save the model and scaler if needed
-        save_model_and_scaler(model, StandardScaler())  # Example: saving the model and scaler
-
-        # Return the result to the template with accuracy
-        return render(request, 'transaction_list.html', {
-            'accuracy': accuracy,  # Pass accuracy to the template
-            'predictions': y_pred.tolist()  # You can also pass predictions if needed
-        })
-
-    return render(request, 'upload_file.html')
-
 import os
 import joblib
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
 from django.conf import settings
+from sklearn.preprocessing import LabelEncoder
 
 # Function to clean the data
 def clean_data(df):
+    # Handle numerical columns
     numerical_cols = df.select_dtypes(include=['float64', 'int64']).columns
     for col in numerical_cols:
         df[col] = pd.to_numeric(df[col], errors='coerce') 
-        df[col].fillna(df[col].median(), inplace=True)  
+        df[col].fillna(df[col].median(), inplace=True)
 
+    # Handle categorical columns
     categorical_cols = df.select_dtypes(include=['object']).columns
     for col in categorical_cols:
-        df[col] = df[col].astype(str).str.strip() 
+        df[col] = df[col].astype('category')
         df[col].fillna(df[col].mode()[0], inplace=True)
 
-    boolean_cols = ['isFraud','isFlaggedFraud']
+        # Limit the number of categories by grouping rare values into 'Other'
+        df = reduce_categories(df, col)
+
+    # Handle boolean columns (Fraud detection columns)
+    boolean_cols = ['isFraud', 'isFlaggedFraud']
     for col in boolean_cols:
         if col in df.columns:
             df[col] = df[col].astype(int)
 
-    df = pd.get_dummies(df, columns=categorical_cols, drop_first=True)
+    # Convert categorical columns to dummy variables (sparse)
+    df = pd.get_dummies(df, columns=categorical_cols, drop_first=True, sparse=True)
 
+    return df
+
+# Function to reduce the number of categories in categorical columns
+def reduce_categories(df, col, threshold=100):
+    """Group infrequent categories into 'Other'."""
+    value_counts = df[col].value_counts()
+    to_replace = value_counts[value_counts < threshold].index
+    df[col] = df[col].replace(to_replace, 'Other')
     return df
 
 # Split the data into training and testing sets
@@ -79,24 +53,6 @@ def split_data(df):
 
     return train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Train and evaluate Logistic Regression model
-def train_and_evaluate_logistic_regression(X_train, y_train, X_test, y_test):
-    model = LogisticRegression(max_iter=1000, random_state=42)
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
-    
-    accuracy = accuracy_score(y_test, y_pred)
-    print(f"Logistic Regression Model Accuracy: {accuracy * 100:.2f}%")
-    
-    # Model Evaluation
-    print("Confusion Matrix:")
-    print(confusion_matrix(y_test, y_pred))
-    
-    print("Classification Report:")
-    print(classification_report(y_test, y_pred))
-    
-    return model
-
 # Train and evaluate Random Forest model
 def train_and_evaluate_random_forest(X_train, y_train, X_test, y_test):
     model = RandomForestClassifier(n_estimators=100, random_state=42)
@@ -106,158 +62,73 @@ def train_and_evaluate_random_forest(X_train, y_train, X_test, y_test):
     accuracy = accuracy_score(y_test, y_pred)
     print(f"Random Forest Model Accuracy: {accuracy * 100:.2f}%")
     
-    # Model Evaluation
-    print("Confusion Matrix:")
-    print(confusion_matrix(y_test, y_pred))
-    
-    print("Classification Report:")
-    print(classification_report(y_test, y_pred))
-    
+    # Return the trained model
     return model
 
-# Function to save the model and scaler
-def save_model_and_scaler(model, scaler):
+# Save the trained model and scaler
+def save_model_and_scaler(model):
     model_path = os.path.join(settings.BASE_DIR, 'models', 'fraud_detection_model.pkl')
-    scaler_path = os.path.join(settings.BASE_DIR, 'models', 'scaler.pkl')
 
-    joblib.dump(model, model_path)  # Save the trained model
-    joblib.dump(scaler, scaler_path)  # Save the scaler
-    print(f"Model and scaler saved to {model_path} and {scaler_path}")
+    # Save the model to a file
+    joblib.dump(model, model_path)
+    print(f"Model saved to {model_path}")
 
-# Function to load the model and scaler for prediction
-def load_model_and_scaler():
+# Load the model for prediction
+def load_model():
     model_path = os.path.join(settings.BASE_DIR, 'models', 'fraud_detection_model.pkl')
-    scaler_path = os.path.join(settings.BASE_DIR, 'models', 'scaler.pkl')
 
-    if os.path.exists(model_path) and os.path.exists(scaler_path):
-        model = joblib.load(model_path)
-        scaler = joblib.load(scaler_path)
-        return model, scaler
+    # Check if the model exists
+    if os.path.exists(model_path):
+        try:
+            # Try to load model
+            model = joblib.load(model_path)
+            return model
+        except EOFError:
+            # If EOFError occurs (corrupted model file), raise error
+            raise EOFError("Model file appears to be corrupted. Please re-train the model.")
     else:
-        raise FileNotFoundError("Model or scaler not found. Please ensure both are saved and available.")
+        raise FileNotFoundError("Model not found. Please ensure the model is saved and available.")
 
+# Preprocess the input data for prediction
+def preprocess_for_prediction(data):
+    # Assuming `data` is a dictionary with relevant features
+    df = pd.DataFrame([data])
 
+    # Handle categorical columns (same as cleaning)
+    categorical_cols = ['type', 'nameOrig', 'nameDest']  # Example, replace with your actual categorical columns
+    for col in categorical_cols:
+        df[col] = df[col].astype('category')
+        df[col].fillna(df[col].mode()[0], inplace=True)
+        df = reduce_categories(df, col)
 
-# import os
-# import joblib
-# import pandas as pd
-# from sklearn.preprocessing import StandardScaler
-# from sklearn.model_selection import train_test_splitn
-# from sklearn.linear_model import LogisticRegression
-# from sklearn.ensemble import RandomForestClassifier
-# from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
-# from django.conf import settings
-# from django.shortcuts import render
-# from .forms import TransactionForm  # Import your form class here
+    # Convert categorical columns to dummy variables (sparse)
+    df = pd.get_dummies(df, columns=categorical_cols, drop_first=True, sparse=True)
 
-# # Function to clean the data
-# def clean_data(df):
-#     numerical_cols = df.select_dtypes(include=['float64', 'int64']).columns
-#     for col in numerical_cols:
-#         df[col] = pd.to_numeric(df[col], errors='coerce') 
-#         df[col].fillna(df[col].median(), inplace=True)  
+    return df
 
-#     categorical_cols = df.select_dtypes(include=['object']).columns
-#     for col in categorical_cols:
-#         df[col] = df[col].astype(str).str.strip() 
-#         df[col].fillna(df[col].mode()[0], inplace=True)
+# Prediction function
+def predict(step, transaction_type, amount, name_orig, old_balance_orig, new_balance_orig, name_dest, old_balance_dest, new_balance_dest):
+    # Create a dictionary of the transaction data
+    transaction_data = {
+        'step': step,
+        'type': transaction_type,
+        'amount': amount,
+        'nameOrig': name_orig,
+        'oldbalanceOrg': old_balance_orig,
+        'newbalanceOrig': new_balance_orig,
+        'nameDest': name_dest,
+        'oldbalanceDest': old_balance_dest,
+        'newbalanceDest': new_balance_dest
+    }
 
-#     boolean_cols = ['isFraud','isFlaggedFraud']
-#     for col in boolean_cols:
-#         if col in df.columns:
-#             df[col] = df[col].astype(int)
+    # Load the model
+    model = load_model()
 
-#     df = pd.get_dummies(df, columns=categorical_cols, drop_first=True)
+    # Preprocess the data (no scaler needed)
+    processed_data = preprocess_for_prediction(transaction_data)
 
-#     return df
+    # Make the prediction
+    prediction = model.predict(processed_data)
 
-# # Split the data into training and testing sets
-# def split_data(df):
-#     if 'isFraud' not in df.columns:
-#         raise KeyError("'isFraud' column not found in the dataset")
-
-#     X = df.drop('isFraud', axis=1)  # Features
-#     y = df['isFraud'].astype(int)   # Target (convert to binary if needed)
-
-#     return train_test_split(X, y, test_size=0.2, random_state=42)
-
-# # Train the Logistic Regression model
-# def train_logistic_regression(X_train, y_train, X_test, y_test):
-#     model = LogisticRegression(max_iter=1000)
-#     model.fit(X_train, y_train)
-#     y_pred = model.predict(X_test)
-#     accuracy = accuracy_score(y_test, y_pred)
-#     print(f"Logistic Regression Model Accuracy: {accuracy * 100:.2f}%")
-#     return model
-
-# # Train the Random Forest model
-# def train_random_forest(X_train, y_train, X_test, y_test):
-#     model = RandomForestClassifier(n_estimators=100, random_state=42)
-#     model.fit(X_train, y_train)
-#     y_pred = model.predict(X_test)
-#     accuracy = accuracy_score(y_test, y_pred)
-#     print(f"Random Forest Model Accuracy: {accuracy * 100:.2f}%")
-#     return model
-
-# # Function to save the model and scaler
-# def save_model_and_scaler(model, scaler):
-#     model_path = os.path.join(settings.BASE_DIR, 'models', 'fraud_detection_model.pkl')
-#     scaler_path = os.path.join(settings.BASE_DIR, 'models', 'scaler.pkl')
-
-#     joblib.dump(model, model_path)  # Save the trained model
-#     joblib.dump(scaler, scaler_path)  # Save the scaler
-#     print(f"Model and scaler saved to {model_path} and {scaler_path}")
-
-# # Function to load the model and scaler for prediction
-# def load_model():
-#     model_path = os.path.join(settings.BASE_DIR, 'models', 'fraud_detection_model.pkl')
-
-#     if os.path.exists(model_path) and os.path.exists(model_path):
-#         model = joblib.load(model_path)
-#         return model, model_path
-#     else:
-#         raise FileNotFoundError("Model or scaler not found. Please ensure both are saved and available.")
-
-# # View to handle prediction request
-# def detect_fraud(request):
-#     if request.method == 'POST':
-#         form = TransactionForm(request.POST)
-#         if form.is_valid():
-#             # Extract cleaned data from form
-#             transaction_data = {
-#                 'step': form.cleaned_data['step'],
-#                 'amount': form.cleaned_data['amount'],
-#                 'oldbalanceOrg': form.cleaned_data['oldbalanceOrg'],
-#                 'newbalanceOrig': form.cleaned_data['newbalanceOrig'],
-#                 'oldbalanceDest': form.cleaned_data['oldbalanceDest'],
-#                 'newbalanceDest': form.cleaned_data['newbalanceDest'],
-#             }
-
-#             # Convert form data into DataFrame
-#             X_new = pd.DataFrame([transaction_data])
-
-#             try:
-#                 # Load the pre-trained model and scaler
-#                 model, scaler = load_model_and_scaler()
-
-#                 # Scale the input data using the pre-trained scaler
-#                 X_new_scaled = scaler.transform(X_new)
-
-#                 # Make the prediction
-#                 prediction = model.predict(X_new_scaled)
-
-#                 # Determine the result
-#                 result = 'Fraudulent' if prediction[0] == 1 else 'Non-Fraudulent'
-
-#             except FileNotFoundError as e:
-#                 result = f"Error: {str(e)}"
-#             except Exception as e:
-#                 result = f"An error occurred during prediction: {str(e)}"
-
-#             # Return result to the template
-#             return render(request, 'detect_fraud.html', {'form': form, 'result': result})
-
-#     else:
-#         form = TransactionForm()
-
-#     return render(request, '.html', {'form': form})
+    # Return the prediction result (fraudulent or not)
+    return "Fraudulent" if prediction[0] == 1 else "Non-Fraudulent"

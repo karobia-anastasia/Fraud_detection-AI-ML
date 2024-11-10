@@ -115,9 +115,11 @@
 <div class="register">
     <ul class="mytop-navi">
         <li class="nav-list"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+
         <li class="nav-list"><a href="{% url 'data_analysis' %}">Prediction</a></li>
         <li class="nav-list"><a href="{% url 'transactions' %}">Transactions</a></li>
-        <li class="nav-list"><a href="{% url 'upload_file' %}">Add Transaction</a></li>
+        <li class="nav-list"><a href="{% url 'upload_file' %}">Upload Transaction</a></li>
+        <li class="nav-list"><a href="{% url 'input_transaction' %}">Input Transaction</a></li>
         <li class="nav-list logout"><a href="{% url 'account:logout' %}">Logout</a></li>
     </ul>
 

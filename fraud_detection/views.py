@@ -1,5 +1,4 @@
 from django.contrib.auth.decorators import login_required
-
 import json
 import base64
 import os
@@ -22,6 +21,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.ensemble import RandomForestClassifier
 import logging
+from sklearn.model_selection import GridSearchCV
+from sklearn.preprocessing import StandardScaler
+from .data_cleaning import clean_data, split_data, train_and_evaluate_random_forest, save_model_and_scaler, load_model
+
 
 logger = logging.getLogger(__name__)
 
@@ -31,133 +34,113 @@ def transaction_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     return render(request, 'transaction_list.html', {'page_obj': page_obj})
-
-def upload_data(request):
-    if request.method == 'POST':
+# Handle file upload and either train or predict
+def upload_file(request):
+    if request.method == 'POST' and request.FILES['file']:
         form = UploadFileForm(request.POST, request.FILES)
+        
         if form.is_valid():
-            file = request.FILES['file']
+            file = form.cleaned_data['file']
+            description = form.cleaned_data.get('description', '')  # Optional description
+            
             fs = FileSystemStorage()
             filename = fs.save(file.name, file)
             file_path = fs.path(filename)
+            
+            logger.info(f"File uploaded: {filename}, path: {file_path}")
+            logger.info(f"File description: {description}")
 
+            # Load the data based on the file extension
             if file.name.endswith('.xlsx'):
-                df = pd.read_excel(file_path, engine='openpyxl')
-                df.columns = df.columns.str.strip()
+                df = pd.read_excel(file_path)
+            elif file.name.endswith('.csv'):
+                df = pd.read_csv(file_path)
+            else:
+                return render(request, 'upload_file.html', {'error': "Unsupported file type. Please upload a .csv or .xlsx file."})
 
-                for index, row in df.iterrows():
-                    transaction, created = Transaction.objects.get_or_create(
-                        step=row['step'],
-                        amount=row['amount'],
-                        type=row['type'],
-                        defaults={
-                            'isFraud': bool(row['isFraud']),
-                            'isFlaggedFraud': bool(row['isFlaggedFraud']),
-                            'nameOrig': row['nameOrig'],
-                            'oldbalanceOrg': row['oldbalanceOrg'],
-                            'newbalanceOrig': row['newbalanceOrig'],
-                            'nameDest': row['nameDest'],
-                            'oldbalanceDest': row['oldbalanceDest'],
-                            'newbalanceDest': row['newbalanceDest'],
-                        }
-                    )
+            # Clean and prepare the data
+            cleaned_df = clean_data(df)
 
-                    if not created:
-                        transaction.step = row['step']
-                        transaction.type = row['type']
-                        transaction.isFraud = bool(row['isFraud'])
-                        transaction.isFlaggedFraud = bool(row['isFlaggedFraud'])
-                        transaction.amount = row['amount']
-                        transaction.nameOrig = row['nameOrig']
-                        transaction.oldbalanceOrg = row['oldbalanceOrg']
-                        transaction.newbalanceOrig = row['newbalanceOrig']
-                        transaction.nameDest = row['nameDest']
-                        transaction.oldbalanceDest = row['oldbalanceDest']
-                        transaction.newbalanceDest = row['newbalanceDest']
-                        transaction.save()
+            # Split the data into training and testing sets
+            X_train, X_test, y_train, y_test = split_data(cleaned_df)
 
-                return redirect('transactions')
-
+            try:
+                # Try to load the existing model
+                model = load_model()
+                # If model exists, make predictions
+                predictions = model.predict(X_test)
+                accuracy = model.score(X_test, y_test)
+                logger.info(f"Model found. Accuracy: {accuracy * 100:.2f}%")
+                
+                # Return predictions and accuracy to the template
+                return render(request, 'transaction_list.html', {
+                    'accuracy': accuracy,
+                    'predictions': predictions,
+                    'description': description  # Send the description to the template
+                })
+            except FileNotFoundError:
+                # If model doesn't exist, train the model
+                model = train_and_evaluate_random_forest(X_train, y_train, X_test, y_test)
+                save_model_and_scaler(model)  # Save the model for future predictions
+                
+                return render(request, 'transaction_list.html', {
+                    'accuracy': "Model trained successfully",
+                    'description': description
+                })
+            except EOFError as e:
+                # Handle case where model file is corrupted
+                logger.error(f"Error loading model: {e}")
+                return render(request, 'error_page.html', {'error': f"Model file is corrupted. Please re-train the model."})
     else:
         form = UploadFileForm()
 
     return render(request, 'upload_file.html', {'form': form})
 
 
-def upload_file(request):
-    if request.method == 'POST' and request.FILES['file']:
-        file = request.FILES['file']
-        fs = FileSystemStorage()
-        filename = fs.save(file.name, file)
-        file_path = fs.path(filename)
+def input_transaction(request):
+    if request.method == 'POST':
+        form = TransactionForm(request.POST)
         
-        if file.name.endswith('.xlsx'):
-            df = pd.read_excel(file_path)
-        elif file.name.endswith('.csv'):
-            df = pd.read_csv(file_path)
+        if form.is_valid():
+            # Extract data from the form
+            step = form.cleaned_data['step']
+            transaction_type = form.cleaned_data['type']
+            amount = form.cleaned_data['amount']
+            name_orig = form.cleaned_data['nameOrig']
+            old_balance_orig = form.cleaned_data['oldbalanceOrg']
+            new_balance_orig = form.cleaned_data['newbalanceOrig']
+            name_dest = form.cleaned_data['nameDest']
+            old_balance_dest = form.cleaned_data['oldbalanceDest']
+            new_balance_dest = form.cleaned_data['newbalanceDest']
+            
+            # Save the transaction to the database
+            transaction = Transaction.objects.create(
+                step=step,
+                type=transaction_type,
+                amount=amount,
+                nameOrig=name_orig,
+                oldbalanceOrg=old_balance_orig,
+                newbalanceOrig=new_balance_orig,
+                nameDest=name_dest,
+                oldbalanceDest=old_balance_dest,
+                newbalanceDest=new_balance_dest
+            )
+
+            # Log the transaction to make sure it's saved
+            logger.info(f"Transaction saved: {transaction}")
+            
+            # Optionally: Redirect after saving the transaction (to avoid re-submitting the form)
+            return redirect('transactions')  # Redirect to a page that lists the transactions, e.g., 'transactions'
         else:
-            return render(request, 'upload_file.html', {'error': "Unsupported file type. Please upload a .csv or .xlsx file."})
-
-        cleaned_df = clean_data(df)
-        X_train, X_test, y_train, y_test = split_data(cleaned_df)
-
-        # Train the model using the training data
-        model = train_model(X_train, y_train, X_test, y_test)
-
-        # Make predictions using the trained model
-        y_pred = model.predict(X_test)
-
-        # Evaluate the model's performance
-
-        evaluate_model(y_test, y_pred)
-        
-        accuracy = accuracy_score(y_test, y_pred) * 100
-        
-        return render(request, 'transaction_list.html', {
-            'accuracy': accuracy,
-            'predictions': y_pred
-        })
+            # If the form is invalid, log the errors
+            logger.error(f"Form is invalid: {form.errors}")
+            return render(request, 'input_transaction.html', {'form': form, 'error': 'Form is invalid. Please check the fields.'})
     
-    return render(request, 'upload_file.html')
+    else:
+        form = TransactionForm()
 
-
-
-# Handle file upload for training
-
-
-# Handle file upload for training
-# def upload_and_train_model(request):
-#     if request.method == 'POST' and request.FILES['file']:
-#         file = request.FILES['file']
-#         fs = FileSystemStorage()
-#         filename = fs.save(file.name, file)
-#         file_path = fs.path(filename)
-        
-#         # Load the data based on the file extension
-#         if file.name.endswith('.xlsx'):
-#             df = pd.read_excel(file_path)
-#         elif file.name.endswith('.csv'):
-#             df = pd.read_csv(file_path)
-#         else:
-#             return render(request, 'upload_file.html', {'error': "Unsupported file type. Please upload a .csv or .xlsx file."})
-
-#         # Clean and prepare the data
-#         cleaned_df = clean_data(df)
-
-#         # Split the data into training and testing sets
-#         X_train, X_test, y_train, y_test = split_data(cleaned_df)
-
-#         # Train and evaluate models
-#         model = train_and_evaluate_random_forest(X_train, y_train, X_test, y_test)
-        
-#         # Save the model and scaler for later use
-#         save_model_and_scaler(model, StandardScaler())  # You can scale data as needed before saving
-        
-#         return render(request, 'transaction_list.html', {'accuracy': accuracy})
-
-#     return render(request, 'upload_file.html')
-
-
+    # Render the form on GET request
+    return render(request, 'input_transaction.html', {'form': form})
 
 def prediction_results(request):
     transactions = Transaction.objects.all()
@@ -220,8 +203,8 @@ def prediction_reports(request):
     # Split the data into training and testing sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
   
-    # Train a RandomForestClassifier model
-    model = RandomForestClassifier()
+    # Train a RandomForestClassifier model with balanced class weights to handle class imbalance
+    model = RandomForestClassifier(class_weight='balanced')
     model.fit(X_train, y_train)
 
     # Save the trained model to disk
@@ -295,6 +278,3 @@ def plot_prediction_counts(prediction_counts):
 
 def img_to_base64(img):
     return base64.b64encode(img.getvalue()).decode()
-
-
-
