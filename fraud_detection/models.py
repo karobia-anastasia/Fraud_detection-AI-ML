@@ -22,7 +22,8 @@ class Transaction(models.Model):
     newbalanceDest = models.DecimalField(max_digits=15, decimal_places=2)
     isFraud = models.BooleanField(default=False)
     isFlaggedFraud = models.BooleanField(default=False)
-    
+    prediction = models.IntegerField(null=True, blank=True)
+    prediction_label = models.CharField(max_length=10, null=True, blank=True)
 
     def __str__(self):
         return f"Transaction {self.id} - {self.type} - Fraud: {self.isFraud}"

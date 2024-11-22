@@ -1,63 +1,45 @@
 from django.contrib.auth.decorators import login_required
-import json
+from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from django.core.paginator import Paginator
+from django.core.files.storage import FileSystemStorage
+from django.conf import settings
+from .forms import UploadFileForm, TransactionForm
+from .models import Transaction
+from fraud_detection.data_cleaning import clean_data, save_model, split_data, load_model, align_columns, train_and_evaluate_model
+import pandas as pd
+import joblib
 import base64
 import os
-import traceback
-import joblib
-import pandas as pd
-from io import BytesIO
-from django.shortcuts import render, redirect
-from fraud_detection.data_cleaning import *
-from fraud_detection.forms import UploadFileForm
-from django.http import JsonResponse
-from sklearn.metrics import classification_report, confusion_matrix
-from .forms import TransactionForm, UploadFileForm
-from django.core.files.storage import FileSystemStorage
-from .models import Transaction
-from django.core.paginator import Paginator
-from django.conf import settings
-from sklearn.model_selection import train_test_split
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.ensemble import RandomForestClassifier
 import logging
-from sklearn.model_selection import GridSearchCV
-from sklearn.preprocessing import StandardScaler
-from .data_cleaning import clean_data, split_data, load_model
-
-
-logger = logging.getLogger(__name__)
-def transaction_list(request):
-    transactions = Transaction.objects.all()  
-    
-    # Paginate the transactions
-    paginator = Paginator(transactions, 10)  # 10 per page
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
-    # Pass the page_obj to the template
-    return render(request, 'transaction_list.html', {'page_obj': page_obj})
+import seaborn as sns
+import matplotlib.pyplot as plt
+from io import BytesIO
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix
 
 # Setup logging
 logger = logging.getLogger(__name__)
 
-# Handle file upload and either train or predict
+def transaction_list(request):
+    transactions = Transaction.objects.all()
+    paginator = Paginator(transactions, 10)  # 10 per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'transaction_list.html', {'page_obj': page_obj})
+
 def upload_file(request):
     if request.method == 'POST' and request.FILES['file']:
         form = UploadFileForm(request.POST, request.FILES)
-        
         if form.is_valid():
             file = form.cleaned_data['file']
             description = form.cleaned_data.get('description', '')  # Optional description
-            
             fs = FileSystemStorage()
             filename = fs.save(file.name, file)
             file_path = fs.path(filename)
-            
             logger.info(f"File uploaded: {filename}, path: {file_path}")
-            logger.info(f"File description: {description}")
 
-            # Load the data based on the file extension
             if file.name.endswith('.xlsx'):
                 df = pd.read_excel(file_path)
             elif file.name.endswith('.csv'):
@@ -72,36 +54,28 @@ def upload_file(request):
             X_train, X_test, y_train, y_test = split_data(cleaned_df)
 
             try:
-                # Try to load the existing model
                 model = load_model()  # Only load the model, no scaler needed
                 logger.info("Model found, making predictions...")
 
                 # Align the input features with the model's expected features
                 cleaned_df = align_columns(cleaned_df, model)
 
-                # Make predictions
                 predictions = model.predict(cleaned_df)
 
-                # If you need to evaluate on a separate test set, you would also drop 'isFraud' here
                 if 'Fraud' in df.columns:
-                    accuracy = model.score(cleaned_df, df['Fraud'])  # Check accuracy, if 'Fraud' is in the test set
+                    accuracy = model.score(cleaned_df, df['Fraud'])
                     logger.info(f"Model found. Accuracy: {accuracy * 100:.2f}%")
                 else:
                     accuracy = "No accuracy calculation available (no test labels)."
 
-                # After processing, redirect to the transactions page with the predictions
-                return redirect('transactions')  # Use the URL name for the transaction list page
-                
-            except FileNotFoundError:
-                # If model doesn't exist, train the model
-                model = train_and_evaluate_model(cleaned_df)  # Train the model here
-                save_model(model, None)  # Save the trained model (no scaler in this case)
+                return redirect('transactions')
 
-                # After training, redirect to the transactions page
-                return redirect('transactions')  # Redirect to transactions page after training
+            except FileNotFoundError:
+                model = train_and_evaluate_model(cleaned_df)  # Train the model here
+                save_model(model, None)
+                return redirect('transactions')
 
             except EOFError as e:
-                # Handle case where model file is corrupted
                 logger.error(f"Error loading model: {e}")
                 return render(request, 'error_page.html', {'error': f"Model file is corrupted. Please re-train the model."})
 
@@ -113,46 +87,28 @@ def upload_file(request):
 def input_transaction(request):
     if request.method == 'POST':
         form = TransactionForm(request.POST)
-        
         if form.is_valid():
             # Extract data from the form
-            step = form.cleaned_data['step']
-            transaction_type = form.cleaned_data['type']
-            amount = form.cleaned_data['amount']
-            name_orig = form.cleaned_data['nameOrig']
-            old_balance_orig = form.cleaned_data['oldbalanceOrg']
-            new_balance_orig = form.cleaned_data['newbalanceOrig']
-            name_dest = form.cleaned_data['nameDest']
-            old_balance_dest = form.cleaned_data['oldbalanceDest']
-            new_balance_dest = form.cleaned_data['newbalanceDest']
-            
-            # Save the transaction to the database
             transaction = Transaction.objects.create(
-                step=step,
-                type=transaction_type,
-                amount=amount,
-                nameOrig=name_orig,
-                oldbalanceOrg=old_balance_orig,
-                newbalanceOrig=new_balance_orig,
-                nameDest=name_dest,
-                oldbalanceDest=old_balance_dest,
-                newbalanceDest=new_balance_dest
+                step=form.cleaned_data['step'],
+                type=form.cleaned_data['type'],
+                amount=form.cleaned_data['amount'],
+                nameOrig=form.cleaned_data['nameOrig'],
+                oldbalanceOrg=form.cleaned_data['oldbalanceOrg'],
+                newbalanceOrig=form.cleaned_data['newbalanceOrig'],
+                nameDest=form.cleaned_data['nameDest'],
+                oldbalanceDest=form.cleaned_data['oldbalanceDest'],
+                newbalanceDest=form.cleaned_data['newbalanceDest']
             )
-
-            # Log the transaction to make sure it's saved
             logger.info(f"Transaction saved: {transaction}")
-            
-            # Optionally: Redirect after saving the transaction (to avoid re-submitting the form)
-            return redirect('transactions')  # Redirect to a page that lists the transactions, e.g., 'transactions'
+            return redirect('transactions')
         else:
-            # If the form is invalid, log the errors
             logger.error(f"Form is invalid: {form.errors}")
             return render(request, 'input_transaction.html', {'form': form, 'error': 'Form is invalid. Please check the fields.'})
     
     else:
         form = TransactionForm()
 
-    # Render the form on GET request
     return render(request, 'input_transaction.html', {'form': form})
 
 def prediction_results(request):
@@ -163,19 +119,16 @@ def prediction_results(request):
     model_path = os.path.join(settings.BASE_DIR, 'models', 'fraud_detection_model.pkl')
 
     if os.path.exists(model_path):
-        # Load the pre-trained model from file
         model = joblib.load(model_path)
     else:
         raise FileNotFoundError('Model file not found. Please train the model first.')
 
-    # Use the model to make predictions on the transaction data
     predictions = model.predict(X)
 
     transaction_df = pd.DataFrame(list(transactions.values()))
     transaction_df['prediction'] = predictions
     transaction_df['prediction_label'] = ['Fraud' if pred == 1 else 'Non-Fraud' for pred in predictions]
 
-    # Update each transaction's prediction in the database
     for idx, transaction in enumerate(transactions):
         transaction.prediction = predictions[idx]
         transaction.prediction_label = 'Fraud' if predictions[idx] == 1 else 'Non-Fraud'
@@ -204,7 +157,6 @@ def prediction_results(request):
         'prediction_data': prediction_counts
     })
 
-
 def prediction_reports(request):
     transactions = Transaction.objects.all()
     transaction_df = pd.DataFrame(list(transactions.values()))
@@ -213,19 +165,15 @@ def prediction_reports(request):
     X = transaction_df[features]
     y = transaction_df['isFraud']
     
-    # Split the data into training and testing sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
   
-    # Train a RandomForestClassifier model with balanced class weights to handle class imbalance
     model = RandomForestClassifier(class_weight='balanced')
     model.fit(X_train, y_train)
 
-    # Save the trained model to disk
     model_path = os.path.join(settings.BASE_DIR, 'models', 'fraud_detection_model.pkl')
     os.makedirs(os.path.dirname(model_path), exist_ok=True)
     joblib.dump(model, model_path)
 
-    # Use the model to make predictions on all transactions
     predictions = model.predict(X)
 
     transaction_df['prediction'] = predictions

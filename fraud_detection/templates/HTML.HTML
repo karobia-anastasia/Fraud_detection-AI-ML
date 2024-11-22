@@ -1,0 +1,202 @@
+{% include 'nav.html' %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediction Reports</title>
+    <style>
+        /* General Styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7fc;
+            padding: 20px;
+            margin: 0;
+            color: #333;
+        }
+
+        h1 {
+            color: #6c4e8b;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        h3 {
+            color: #4a3f61;
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+
+        p {
+            font-size: 1.1em;
+            margin: 10px 0;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+            font-size: 1.1em;
+        }
+
+        ul li {
+            margin-bottom: 10px;
+        }
+
+        strong {
+            color: #6c4e8b;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            margin-top: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .prediction-data {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .prediction-data ul {
+            padding-left: 20px;
+        }
+
+        .prediction-data li {
+            padding-left: 10px;
+        }
+
+        /* Flexbox for Pairing Data into Two Rows */
+        .flex-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px; /* Space between columns */
+            justify-content: space-between;
+        }
+
+        .flex-item {
+            flex: 1;
+            min-width: 280px;
+            max-width: 45%; 
+        }
+
+        /* Images */
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background-color: #6c4e8b;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            background-color: #4a347b;
+        }
+
+        /* Responsive Layout */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2em;
+            }
+
+            .container {
+                padding: 20px;
+                margin-top: 10%;
+            }
+
+            .prediction-data {
+                margin-bottom: 20px;
+            }
+
+            ul li {
+                font-size: 1em;
+            }
+
+            .flex-container {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .flex-item {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>Prediction Reports (Graphical View)</h1>
+    
+        <div class="flex-container">
+            <!-- Model Performance Section -->
+            <div class="flex-item prediction-data">
+                <h3>Model Performance (Best Model: {{ best_model_name }})</h3>
+                <p><strong>Accuracy:</strong> {{ report.accuracy }}%</p>
+                <p><strong>Precision:</strong> {{ report.precision }}%</p>
+                <p><strong>Recall:</strong> {{ report.recall }}%</p>
+                <p><strong>F1-Score:</strong> {{ report.f1_score }}%</p>
+            </div>
+    
+            <!-- Performance Comparison Section -->
+            <div class="flex-item">
+                <h3>Performance Comparison</h3>
+                <p><strong>XGBoost Improvement:</strong> {{ xgb_improvement }}%</p>
+                <p><strong>Logistic Regression Improvement:</strong> {{ logreg_improvement }}%</p>
+            </div>
+        </div>
+    
+        <div class="flex-container">
+            <!-- Performance Comparison Chart Section -->
+            <div class="flex-item">
+                <h3>Model Performance Comparison</h3>
+                <img src="data:image/png;base64,{{ comparison_chart }}" alt="Performance Comparison">
+            </div>
+    
+            <!-- Model Performance Bar Chart Section -->
+            <div class="flex-item">
+                <h3>Model Performance Chart</h3>
+                <img src="data:image/png;base64,{{ performance_bar_chart }}" alt="Model Performance Bar Chart">
+            </div>
+        </div>
+    
+        <div class="flex-container">
+            <!-- Confusion Matrix Section -->
+            <div class="flex-item">
+                <h3>Confusion Matrix</h3>
+                <img src="data:image/png;base64,{{ confusion_image }}" alt="Confusion Matrix">
+            </div>
+    
+            <!-- Prediction Counts Section -->
+            <div class="flex-item">
+                <h3>Prediction Counts (Fraud vs Non-Fraud)</h3>
+                <img src="data:image/png;base64,{{ prediction_chart }}" alt="Prediction Counts Chart">
+            </div>
+        </div>
+    </div>
+    
+    
+</body>
+
+</html>
