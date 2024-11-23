@@ -158,6 +158,7 @@ img {
     <div class="container">
         <h1>Prediction Reports (Graphical View)</h1>
     
+        <!-- Flex container for Model Performance and Chart -->
         <div class="flex-container">
             <!-- Model Performance Section -->
             <div class="flex-item prediction-data">
@@ -167,28 +168,31 @@ img {
                 <p><strong>Recall:</strong> {{ report.recall }}%</p>
                 <p><strong>F1-Score:</strong> {{ report.f1_score }}%</p>
             </div>
+    
+            <!-- Model Performance Chart Section -->
             <div class="flex-item">
                 <h3>Model Performance Chart</h3>
-                <img src="data:image/png;base64,{{ performance_bar_chart }}" alt="Model Performance Bar Chart">
+                <!-- Base64 Image for Performance Bar Chart -->
+                <img src="data:image/png;base64,{{ performance_bar_graph }}" alt="Model Performance Bar Graph" />
             </div>
-            <!-- Performance Comparison Section -->
-           
-        </div>
     
+        <!-- Flex container for Model Comparison and Improvements -->
         <div class="flex-container">
-            <!-- Performance Comparison Chart Section -->
+            <!-- Performance Comparison Chart -->
             <div class="flex-item">
                 <h3>Model Performance Comparison</h3>
                 <img src="data:image/png;base64,{{ comparison_chart }}" alt="Performance Comparison">
             </div>
+    
+            <!-- Performance Improvement Data -->
             <div class="flex-item">
-                <h3>Performance Comparison</h3>
-                <p><strong>XGBoost Improvement:</strong> {{ xgb_improvement }}1.5%</p>
-                <p><strong>Logistic Regression Improvement:</strong> {{ logreg_improvement }}2.4%</p>
+                <h3>Performance Improvement</h3>
+                <p><strong>XGBoost Improvement:</strong> {{ xgb_improvement }}%</p>
+                <p><strong>Logistic Regression Improvement:</strong> {{ logreg_improvement }}%</p>
             </div>
-   
         </div>
     
+        <!-- Flex container for Confusion Matrix and Prediction Counts -->
         <div class="flex-container">
             <!-- Confusion Matrix Section -->
             <div class="flex-item">
@@ -205,6 +209,59 @@ img {
     </div>
     
     
+
 </body>
 
 </html>
+
+
+
+
+
+
+
+
+<!-- <div class="container">
+    <h1>Prediction Reports (Graphical View)</h1>
+
+    <div class="flex-container">
+        <div class="flex-item prediction-data">
+            <h3>Model Performance (Best Model: {{ best_model_name }})</h3>
+            <p><strong>Accuracy:</strong> {{ report.accuracy }}%</p>
+            <p><strong>Precision:</strong> {{ report.precision }}%</p>
+            <p><strong>Recall:</strong> {{ report.recall }}%</p>
+            <p><strong>F1-Score:</strong> {{ report.f1_score }}%</p>
+        </div>
+        <div class="flex-item">
+            <h3>Model Performance Chart</h3>
+            <img src="data:image/png;base64,{{ performance_bar_chart }}" alt="Model Performance Bar Chart">
+        </div>
+       
+    </div>
+
+    <div class="flex-container">
+        <div class="flex-item">
+            <h3>Model Performance Comparison</h3>
+            <img src="data:image/png;base64,{{ comparison_chart }}" alt="Performance Comparison">
+        </div>
+        <div class="flex-item">
+            <h3>Performance Comparison</h3>
+            <p><strong>XGBoost Improvement:</strong> {{ xgb_improvement }}1.5%</p>
+            <p><strong>Logistic Regression Improvement:</strong> {{ logreg_improvement }}1.8%</p>
+        </div>
+
+    </div>
+
+    <div class="flex-container">
+        <div class="flex-item">
+            <h3>Confusion Matrix</h3>
+            <img src="data:image/png;base64,{{ confusion_image }}" alt="Confusion Matrix">
+        </div>
+
+        <div class="flex-item">
+            <h3>Prediction Counts (Fraud vs Non-Fraud)</h3>
+            <img src="data:image/png;base64,{{ prediction_chart }}" alt="Prediction Counts Chart">
+        </div>
+    </div>
+</div>
+
