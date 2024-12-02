@@ -86,7 +86,7 @@
         .flex-item {
             flex: 1;
             min-width: 280px;
-            max-width: 45%; 
+            max-width: 45%;
         }
 
         /* Images */
@@ -148,38 +148,104 @@
 
     <div class="container">
         <h1>Prediction Reports (Graphical View)</h1>
-
+    
+        <!-- Model Performance Section -->
         <div class="flex-container">
             <div class="flex-item prediction-data">
-                <h3>Model Performance</h3>
+                <h3>Random Forest Model Performance</h3>
                 <p><strong>Accuracy:</strong> {{ report.accuracy }}</p>
                 <p><strong>Precision:</strong> {{ report.precision }}</p>
                 <p><strong>Recall:</strong> {{ report.recall }}</p>
                 <p><strong>F1-Score:</strong> {{ report.f1_score }}</p>
             </div>
-
+    
+            <div class="flex-item prediction-data">
+                <h3>XGBoost Model Performance</h3>
+                <p><strong>Accuracy:</strong> {{ report.accuracy }}</p>
+                <p><strong>Precision:</strong> {{ report.precision }}</p>
+                <p><strong>Recall:</strong> {{ report.recall }}</p>
+                <p><strong>F1-Score:</strong> {{ report.f1_score }}</p>
+            </div>
+        </div>
+    
+        <!-- Prediction Data Section -->
+        <div class="flex-container">
             <div class="flex-item prediction-data">
                 <h3>Prediction Data</h3>
                 <ul>
-                    <li><strong>Non-Fraud</strong>: {{ prediction_data.data.0 }} predictions</li>
-                    <li><strong>Fraud</strong>: {{ prediction_data.data.1 }} predictions</li>
+                    <li><strong>Non-Fraud (Random Forest)</strong>: {{ prediction_data.data.0 }} predictions</li>
+                    <li><strong>Fraud (Random Forest)</strong>: {{ prediction_data.data.1 }} predictions</li>
+                </ul>
+                <ul>
+                    <li><strong>Non-Fraud (XGBoost)</strong>: {{ prediction_data.data.0 }} predictions</li>
+                    <li><strong>Fraud (XGBoost)</strong>: {{ prediction_data.data.1 }} predictions</li>
                 </ul>
             </div>
         </div>
-
+    
         <div class="flex-container">
             <div class="flex-item">
-                <h3>Confusion Matrix</h3>
-                <img src="data:image/png;base64,{{ confusion_image }}" alt="Confusion Matrix">
+                <h3>Random Forest Confusion Matrix</h3>
+                <img src="data:image/png;base64,{{ confusion_image_rf }}" alt="Random Forest Confusion Matrix">
             </div>
             <div class="flex-item">
-                <h3>Prediction Counts (Fraud vs Non-Fraud)</h3>
-                <img src="data:image/png;base64,{{ prediction_chart }}" alt="Prediction Counts Chart">
+                <h3>XGBoost Confusion Matrix</h3>
+                <img src="data:image/png;base64,{{ confusion_image_xgb }}" alt="XGBoost Confusion Matrix">
             </div>
         </div>
-    </div>
+        
+        <div class="flex-container">
+            <div class="flex-item">
+                <h3>Random Forest Prediction Counts (Fraud vs Non-Fraud)</h3>
+                <img src="data:image/png;base64,{{ prediction_chart_rf }}" alt="Random Forest Prediction Counts Chart">
+            </div>
+            <div class="flex-item">
+                <h3>XGBoost Prediction Counts (Fraud vs Non-Fraud)</h3>
+                <img src="data:image/png;base64,{{ prediction_chart_xgb }}" alt="XGBoost Prediction Counts Chart">
+            </div>
+        </div>
+        
+    
+        <!-- Hyperparameters Section -->
+        <div class="flex-container">
+            <div class="flex-item prediction-data">
+                <h3>Model Hyperparameters</h3>
+                <ul>
+                    <li><strong>Base Algorithm (Random Forest):</strong> 
+                        <ul>
+                            <li>n_estimators: {{ base_algorithm.n_estimators }}</li>
+                            <li>max_depth: {{ base_algorithm.max_depth }}</li>
+                            <li>min_samples_split: {{ base_algorithm.min_samples_split }}</li>
+                        </ul>
+                    </li>
+                    <li><strong>Proposed Algorithm (XGBoost):</strong> 
+                        <ul>
+                            <li>n_estimators: {{ xgboost_algorithm.n_estimators }}</li>
+                            <li>max_depth: {{ xgboost_algorithm.max_depth }}</li>
+                            <li>learning_rate: {{ xgboost_algorithm.learning_rate }}</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+            <div class="flex-item prediction-data">
+                <h3>Performance Comparison: Accuracy Improvement</h3>
+                <p><strong>Base Algorithm (Random Forest) Accuracy:</strong> {{rf_accuracy }}%</p>
+                <p><strong>Proposed Algorithm (XGBoost) Accuracy:</strong> {{ xgb_accuracy }}%</p>
+                <p><strong>Percentage Improvement:</strong> {{ performance_improvement|default:"N/A" }}%</p>
+                {% if performance_comparison_chart %}
+                    <img src="data:image/png;base64,{{ performance_comparison_chart }}" alt="Performance Comparison Chart">
+                {% else %}
+                    <p>No performance chart available.</p>
+                {% endif %}
+            </div>
+        </div>
+    
+ 
+</div>
 
     
+    
+
 </body>
 
 </html>

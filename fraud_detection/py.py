@@ -203,156 +203,113 @@ def prediction_results(request):
         },
         'prediction_data': prediction_counts
     })
+
+
 # Import necessary libraries
 from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
-from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
+from sklearn.metrics import classification_report, accuracy_score
 from sklearn.model_selection import train_test_split
 import joblib
 import os
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-from io import BytesIO
-import base64
-from django.http import HttpResponse
 
 # Function to handle the prediction reports
 def prediction_reports(request):
-    try:
-        # Retrieve all transactions from the database
-        transactions = Transaction.objects.all()
-        transaction_df = pd.DataFrame(list(transactions.values()))
+    # Retrieve all transactions from the database
+    transactions = Transaction.objects.all()
+    transaction_df = pd.DataFrame(list(transactions.values()))
 
-        # Specify the features used for prediction
-        features = ['step', 'amount', 'oldbalanceOrg', 'newbalanceOrig', 'oldbalanceDest', 'newbalanceDest']
+    # Specify the features used for prediction
+    features = ['step', 'amount', 'oldbalanceOrg', 'newbalanceOrig', 'oldbalanceDest', 'newbalanceDest']
+    X = transaction_df[features]
+    y = transaction_df['isFraud']  # Assuming 'isFraud' column exists in the model
 
-        # Convert the necessary columns to numeric (to handle invalid data)
-        transaction_df['amount'] = pd.to_numeric(transaction_df['amount'], errors='coerce')
-        transaction_df['oldbalanceOrg'] = pd.to_numeric(transaction_df['oldbalanceOrg'], errors='coerce')
-        transaction_df['newbalanceOrig'] = pd.to_numeric(transaction_df['newbalanceOrig'], errors='coerce')
-        transaction_df['oldbalanceDest'] = pd.to_numeric(transaction_df['oldbalanceDest'], errors='coerce')
-        transaction_df['newbalanceDest'] = pd.to_numeric(transaction_df['newbalanceDest'], errors='coerce')
+    # Split the data into training and testing sets
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
-        # Drop rows with NaN values in the relevant columns
-        required_columns = ['amount', 'oldbalanceOrg', 'newbalanceOrig', 'oldbalanceDest', 'newbalanceDest', 'isFraud']
-        transaction_df = transaction_df.dropna(subset=required_columns)
+    # Train the RandomForest model
+    rf_model = RandomForestClassifier(class_weight='balanced')
+    rf_model.fit(X_train, y_train)
+    
+    # Train the XGBoost model
+    xgb_model = XGBClassifier(use_label_encoder=False, eval_metric='logloss')
+    xgb_model.fit(X_train, y_train)
 
-        # Ensure there is data available for model training
-        if transaction_df.empty:
-            return HttpResponse("No valid data available for training and prediction.")
+    # Make predictions with both models
+    rf_predictions = rf_model.predict(X_test)
+    xgb_predictions = xgb_model.predict(X_test)
 
-        # Define the features and target variable
-        X = transaction_df[features]
-        y = transaction_df['isFraud']
+    # Save the trained models to disk
+    rf_model_path = os.path.join(settings.BASE_DIR, 'models', 'rf_fraud_detection_model.pkl')
+    os.makedirs(os.path.dirname(rf_model_path), exist_ok=True)
+    joblib.dump(rf_model, rf_model_path)
 
-        # Split the data into training and testing sets
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+    xgb_model_path = os.path.join(settings.BASE_DIR, 'models', 'xgb_fraud_detection_model.pkl')
+    joblib.dump(xgb_model, xgb_model_path)
 
-        # Check if train/test data is valid
-        print(f"Training Data Size: {X_train.shape}, Testing Data Size: {X_test.shape}")
+    # Generate classification reports for both models
+    rf_report = classification_report(y_test, rf_predictions, output_dict=True)
+    xgb_report = classification_report(y_test, xgb_predictions, output_dict=True)
 
-        # Train the RandomForest model
-        rf_model = RandomForestClassifier(class_weight='balanced')
-        rf_model.fit(X_train, y_train)
+    # Hyperparameters
+    base_algorithm = {
+        'n_estimators': rf_model.n_estimators,
+        'max_depth': rf_model.max_depth,
+        'min_samples_split': rf_model.min_samples_split
+    }
 
-        # Train the XGBoost model with an explicitly set learning rate
-        xgb_model = XGBClassifier(use_label_encoder=False, eval_metric='logloss', learning_rate=0.1)
-        xgb_model.fit(X_train, y_train)
+    xgboost_algorithm = {
+        'n_estimators': xgb_model.n_estimators,
+        'max_depth': xgb_model.max_depth,
+        'learning_rate': xgb_model.learning_rate
+    }
 
-        # Make predictions with both models
-        rf_predictions = rf_model.predict(X_test)
-        xgb_predictions = xgb_model.predict(X_test)
+    # Model accuracies
+    rf_accuracy = accuracy_score(y_test, rf_predictions)
+    xgb_accuracy = accuracy_score(y_test, xgb_predictions)
+    
+    # Calculate performance improvement
+    performance_improvement = ((xgb_accuracy - rf_accuracy) / rf_accuracy) * 100
 
-        # Check the predictions output
-        print(f"Random Forest Predictions: {rf_predictions[:10]}")  # Print first 10 predictions
-        print(f"XGBoost Predictions: {xgb_predictions[:10]}")  # Print first 10 predictions
+    # Generate confusion matrix and prediction counts
+    cm_rf = confusion_matrix(y_test, rf_predictions)
+    cm_xgb = confusion_matrix(y_test, xgb_predictions)
+    confusion_image_rf = plot_confusion_matrix(cm_rf)
+    confusion_image_xgb = plot_confusion_matrix(cm_xgb)
+    
+    prediction_counts_rf = pd.Series(rf_predictions).value_counts()
+    prediction_counts_xgb = pd.Series(xgb_predictions).value_counts()
 
-        # Save the trained models to disk
-        rf_model_path = os.path.join(settings.BASE_DIR, 'models', 'rf_fraud_detection_model.pkl')
-        os.makedirs(os.path.dirname(rf_model_path), exist_ok=True)
-        joblib.dump(rf_model, rf_model_path)
+    prediction_chart_rf = plot_prediction_counts(prediction_counts_rf)
+    prediction_chart_xgb = plot_prediction_counts(prediction_counts_xgb)
 
-        xgb_model_path = os.path.join(settings.BASE_DIR, 'models', 'xgb_fraud_detection_model.pkl')
-        joblib.dump(xgb_model, xgb_model_path)
+    # Prepare data for display
+    prediction_data = {
+        'labels': ['Non-Fraud', 'Fraud'],
+        'data': [prediction_counts_rf.get(0, 0), prediction_counts_rf.get(1, 0)]
+    }
 
-        # Generate classification reports for both models
-        rf_report = classification_report(y_test, rf_predictions, output_dict=True)
-        xgb_report = classification_report(y_test, xgb_predictions, output_dict=True)
+    # Prepare the context to pass to the template
+    context = {
+        'transaction_data': transaction_df,
+        'report': {
+            'accuracy': rf_report['accuracy'],
+            'precision': rf_report['weighted avg']['precision'],
+            'recall': rf_report['weighted avg']['recall'],
+            'f1_score': rf_report['weighted avg']['f1-score'],
+        },
+        'prediction_data': prediction_data,
+        'confusion_image_rf': confusion_image_rf,
+        'confusion_image_xgb': confusion_image_xgb,
+        'prediction_chart_rf': prediction_chart_rf,
+        'prediction_chart_xgb': prediction_chart_xgb,
+        'base_algorithm': base_algorithm,
+        'xgboost_algorithm': xgboost_algorithm,
+        'performance_improvement': performance_improvement,
+        'performance_comparison_chart': plot_comparison_graph(rf_accuracy, xgb_accuracy, performance_improvement),
+    }
 
-        # Hyperparameters
-        base_algorithm = {
-            'n_estimators': rf_model.n_estimators,
-            'max_depth': rf_model.max_depth,
-            'min_samples_split': rf_model.min_samples_split
-        }
-
-        xgboost_algorithm = {
-            'n_estimators': xgb_model.n_estimators,
-            'max_depth': xgb_model.max_depth,
-            'learning_rate': xgb_model.learning_rate
-        }
-
-        # Model accuracies
-        rf_accuracy = accuracy_score(y_test, rf_predictions)
-        xgb_accuracy = accuracy_score(y_test, xgb_predictions)
-
-        # Log the accuracy to check if they're valid
-        print(f"Random Forest Accuracy: {rf_accuracy}")
-        print(f"XGBoost Accuracy: {xgb_accuracy}")
-
-        # Check if accuracy is valid and non-zero
-        if rf_accuracy == 0 or xgb_accuracy == 0:
-            performance_improvement = None  # No improvement can be calculated if any model accuracy is zero
-        else:
-            performance_improvement = ((xgb_accuracy - rf_accuracy) / rf_accuracy) * 100
-
-        # Generate confusion matrix and prediction counts
-        cm_rf = confusion_matrix(y_test, rf_predictions)
-        cm_xgb = confusion_matrix(y_test, xgb_predictions)
-        confusion_image_rf = plot_confusion_matrix(cm_rf)
-        confusion_image_xgb = plot_confusion_matrix(cm_xgb)
-
-        prediction_counts_rf = pd.Series(rf_predictions).value_counts()
-        prediction_counts_xgb = pd.Series(xgb_predictions).value_counts()
-
-        prediction_chart_rf = plot_prediction_counts(prediction_counts_rf)
-        prediction_chart_xgb = plot_prediction_counts(prediction_counts_xgb)
-
-        # Prepare data for display
-        prediction_data = {
-            'labels': ['Non-Fraud', 'Fraud'],
-            'data': [prediction_counts_rf.get(0, 0), prediction_counts_rf.get(1, 0)]
-        }
-
-        # Prepare the context to pass to the template
-        context = {
-            'transaction_data': transaction_df,
-            'report': {
-                'accuracy': rf_report['accuracy'],
-                'precision': rf_report['weighted avg']['precision'],
-                'recall': rf_report['weighted avg']['recall'],
-                'f1_score': rf_report['weighted avg']['f1-score'],
-            },
-            'prediction_data': prediction_data,
-            'confusion_image_rf': confusion_image_rf,
-            'confusion_image_xgb': confusion_image_xgb,
-            'prediction_chart_rf': prediction_chart_rf,
-            'prediction_chart_xgb': prediction_chart_xgb,
-            'base_algorithm': base_algorithm,
-            'xgboost_algorithm': xgboost_algorithm,
-            'performance_improvement': performance_improvement,
-            'rf_accuracy':rf_accuracy,
-            'xgb_accuracy':xgb_accuracy,
-            'performance_comparison_chart': plot_comparison_graph(rf_accuracy, xgb_accuracy, performance_improvement),
-        }
-
-        return render(request, 'dashboard_view.html', context)
-
-    except Exception as e:
-        # Log the error for debugging purposes
-        print(f"Error in prediction_reports: {e}")
-        return HttpResponse(f"An error occurred while generating the reports: {e}")
+    return render(request, 'dashboard_view.html', context)
 
 # Function to plot confusion matrix and convert it to base64
 def plot_confusion_matrix(cm):
@@ -366,7 +323,7 @@ def plot_confusion_matrix(cm):
     plt.savefig(img, format='png')
     img.seek(0)
     plt.close()
-
+    
     return img_to_base64(img)
 
 # Function to plot prediction counts (Fraud vs Non-Fraud) and convert it to base64
@@ -388,7 +345,7 @@ def plot_prediction_counts(prediction_counts):
 def img_to_base64(img):
     return base64.b64encode(img.getvalue()).decode()
 
-# Function to plot model comparison (if needed)
+# Optional: Function to plot model comparison (if needed)
 def plot_comparison_graph(base_accuracy, xgb_accuracy, improvement):
     models = ['Random Forest', 'XGBoost']
     accuracies = [base_accuracy, xgb_accuracy]
@@ -402,3 +359,8 @@ def plot_comparison_graph(base_accuracy, xgb_accuracy, improvement):
     img.seek(0)
     plt.close()
     return img_to_base64(img)
+
+def img_to_base64(img):
+    base64_str = base64.b64encode(img.getvalue()).decode('utf-8')
+    print(base64_str[:100])  # Log a portion of the base64 string to verify it's correct
+    return base64_str
