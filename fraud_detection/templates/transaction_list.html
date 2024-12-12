@@ -8,12 +8,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transactions</title>
     <style>
-        * {
+        *
+        {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-
         body {
             background-color: #f4f4f9;
             color: #6c4e8b;
@@ -23,13 +23,11 @@
             align-items: center;
             min-height: 100vh;
         }
-
         h1 {
             text-align: center;
             font-size: 1.5rem;
             color: #6c4e8b;
         }
-
         .wrapper {
             width: 100%;
             max-width: 1200px;
@@ -39,76 +37,60 @@
             margin-left: auto; 
             margin-right: auto; 
         }
-
         .form {
             display: flex;
             flex-direction: column;
             gap: 20px;
         }
-
-        /* Table Container with Horizontal Scrolling */
         .table-container {
             width: 100%;
             overflow-x: auto;
             -webkit-overflow-scrolling: touch; 
             margin-bottom: 10px;
         }
-
         table {
             width: 100%;
             border-collapse: collapse;
             table-layout: auto; 
         }
-
         th, td {
             padding: 12px;
             text-align: left;
             border: 1px solid #ddd;
-            white-space: nowrap; /* Prevent text wrapping */
+            white-space: nowrap; 
             overflow: hidden;
             font-size: 12px;
-            text-overflow: ellipsis; /* Truncate content with ellipsis if too long */
+            text-overflow: ellipsis; 
         }
-
         th {
             background-color: #6c4e8b;
             color: white;
         }
-
-        /* Show full content when hovered */
         td[title]:hover {
             background-color: #f0f0f0;
             cursor: pointer;
         }
-
-        /* Pagination styles */
         .pagination {
             display: flex;
             justify-content: center;
             margin-top: 20px;
         }
-
         .pagination a {
             margin: 0 5px;
             text-decoration: none;
             color: #6c4e8b;
         }
-
         .pagination .current {
             font-weight: bold;
         }
-
         .pagination a:hover {
             text-decoration: underline;
         }
-
-        /* Responsive design for smaller screens */
         @media (max-width: 768px) {
             table {
                 width: 100%;
                 border: 0;
             }
-
             th, td {
                 padding: 8px;
             }
@@ -120,26 +102,21 @@
             td {
                 font-size: 12px;
             }
-
             .pagination {
                 font-size: 14px;
                 flex-wrap: wrap;
             }
-
             .pagination a {
                 margin: 5px;
             }
         }
-
         @media (max-width: 480px) {
             table {
                 font-size: 12px;
             }
-
             th, td {
                 padding: 6px;
             }
-
             .pagination a {
                 font-size: 12px;
             }
@@ -147,12 +124,9 @@
     </style>
 </head>
 <body>
-
     <div class="wrapper">
         <div class="form">
             <h1>Transactions</h1>
-
-            <!-- Transaction Table -->
             <div class="table-container">
                 <table class="transaction-table">
                     <thead>
@@ -192,7 +166,6 @@
                 </table>
             </div>
 
-            <!-- Pagination Controls -->
             <div class="pagination">
                 <span class="step-links">
                     {% if page_obj.has_previous %}
@@ -218,6 +191,5 @@
             </div>
         </div>
     </div>
-
 </body>
 </html>

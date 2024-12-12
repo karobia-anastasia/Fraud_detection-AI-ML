@@ -9,22 +9,41 @@ from io import BytesIO
 from django.shortcuts import render, redirect
 from fraud_detection.data_cleaning import *
 from fraud_detection.forms import UploadFileForm
-from django.http import JsonResponse, HttpResponse
-from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+from django.http import JsonResponse
+from sklearn.metrics import classification_report, confusion_matrix
 from .forms import TransactionForm, UploadFileForm
 from django.core.files.storage import FileSystemStorage
 from .models import Transaction
 from django.core.paginator import Paginator
 from django.conf import settings
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.ensemble import RandomForestClassifier
-from xgboost import XGBClassifier
+import logging
+from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from .data_cleaning import clean_data, split_data, load_model
+
+
+import os
+import joblib
+import base64
+import pandas as pd
 import numpy as np
-import logging
+import seaborn as sns
+import matplotlib.pyplot as plt
+from io import BytesIO
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
+from django.http import HttpResponse
+from django.shortcuts import render
+from django.conf import settings
+
+from sklearn.metrics import classification_report, accuracy_score
+
 
 logger = logging.getLogger(__name__)
 def transaction_list(request):
@@ -38,12 +57,17 @@ def transaction_list(request):
     # Pass the page_obj to the template
     return render(request, 'transaction_list.html', {'page_obj': page_obj})
 
+# Setup logging
 logger = logging.getLogger(__name__)
 
-
+from django.shortcuts import render, redirect
+from django.core.files.storage import FileSystemStorage
+import pandas as pd
+import logging
 
 logger = logging.getLogger(__name__)
 
+# Function to handle file upload and train/predict workflow
 def upload_file(request):
     if request.method == 'POST' and request.FILES.get('file'):
         form = UploadFileForm(request.POST, request.FILES)
@@ -52,6 +76,7 @@ def upload_file(request):
             file = form.cleaned_data['file']
             description = form.cleaned_data.get('description', '')  # Optional description
             
+            # Save file
             fs = FileSystemStorage()
             filename = fs.save(file.name, file)
             file_path = fs.path(filename)
@@ -60,6 +85,7 @@ def upload_file(request):
             if description:
                 logger.info(f"File description: {description}")
 
+            # Step 1: Read the File
             try:
                 if file.name.endswith('.xlsx'):
                     df = pd.read_excel(file_path)
@@ -71,6 +97,7 @@ def upload_file(request):
                 logger.error(f"Error reading file: {e}")
                 return render(request, 'upload_file.html', {'error': str(e)})
 
+            # Step 2: Clean Data
             try:
                 cleaned_df = clean_data(df)
                 logger.info("Data cleaned successfully.")
@@ -78,27 +105,32 @@ def upload_file(request):
                 logger.error(f"Error cleaning data: {e}")
                 return render(request, 'upload_file.html', {'error': f"Data cleaning failed: {e}"})
 
+            # Step 3: Check for Existing Model
             try:
                 model = load_model()
                 logger.info("Existing model loaded successfully. Proceeding with predictions...")
 
+                # Align columns to model input
                 cleaned_df = align_columns(cleaned_df, model)
                 
+                # Predict
                 predictions = model.predict(cleaned_df)
                 logger.info("Predictions completed successfully.")
 
+                # Calculate accuracy if labels exist
                 if 'Fraud' in cleaned_df.columns:
                     accuracy = model.score(cleaned_df.drop(columns=['Fraud']), cleaned_df['Fraud'])
                     logger.info(f"Accuracy: {accuracy * 100:.2f}%")
                 else:
                     accuracy = "No labels found. Accuracy calculation skipped."
 
+                # Save predictions if needed
                 cleaned_df['Predictions'] = predictions
                 output_file = file_path.replace('.csv', '_predictions.csv')
                 cleaned_df.to_csv(output_file, index=False)
                 logger.info(f"Predictions saved to: {output_file}")
 
-                return redirect('transactions')  
+                return redirect('transactions')  # Adjust based on your app's flow
 
             except (FileNotFoundError, EOFError) as e:
                 logger.warning("No model found or model file corrupted. Training a new model...")
@@ -171,16 +203,19 @@ def prediction_results(request):
     model_path = os.path.join(settings.BASE_DIR, 'models', 'fraud_detection_model.pkl')
 
     if os.path.exists(model_path):
+        # Load the pre-trained model from file
         model = joblib.load(model_path)
     else:
         raise FileNotFoundError('Model file not found. Please train the model first.')
 
+    # Use the model to make predictions on the transaction data
     predictions = model.predict(X)
 
     transaction_df = pd.DataFrame(list(transactions.values()))
     transaction_df['prediction'] = predictions
     transaction_df['prediction_label'] = ['Fraud' if pred == 1 else 'Non-Fraud' for pred in predictions]
 
+    # Update each transaction's prediction in the database
     for idx, transaction in enumerate(transactions):
         transaction.prediction = predictions[idx]
         transaction.prediction_label = 'Fraud' if predictions[idx] == 1 else 'Non-Fraud'
@@ -331,7 +366,7 @@ def prediction_reports(request):
             ]
         }
 
-  
+        # Prepare context for template
         context = {
             'rf_accuracy': rf_accuracy,
             'xgb_accuracy': xgb_accuracy,

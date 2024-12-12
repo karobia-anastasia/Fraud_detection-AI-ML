@@ -25,7 +25,7 @@
             text-align: center;
         }
 
-        P {
+        h3 {
             color: #4a3f61;
             font-size: 1.5em;
             margin-bottom: 10px;
@@ -146,43 +146,33 @@
 
 <body>
 
+
     <div class="container">
-   <div class="flex-container">
-<div class="flex-item prediction-data">
-    <h1>Model Performance</h1>
-    <P>Base Model (RandomForest) Accuracy: {{ rf_accuracy }}</P> 
-    <P>Proposed Model (XGBoost) Accuracy: {{ xgb_accuracy }}</P> 
-    <P>XGBoost Accuracy Improvement: {{ performance_improvement_xgb }}%</P>
-
-</div>
-<div class="flex-item">
-
-    <h2>Percentage improvement using proposed algorithm and comparison with the base algorithm.   </h2>
-    <img src="data:image/png;base64,{{ performance_comparison_chart }}" alt="Model Comparison Plot">
-
-</div>
-   </div>
+        <h1>Prediction Reports (Graphical View)</h1>
+    
+        <!-- Model Performance Section -->
         <div class="flex-container">
             <div class="flex-item prediction-data">
-                <P>Random Forest Model Performance</P>
+                <h3>Random Forest Model Performance</h3>
                 <p><strong>Accuracy:</strong> {{ rf_accuracy }}%</p>
-                <p><strong>Precision:</strong> {{ rf_precision }}</p>
-                <p><strong>Recall:</strong> {{ rf_recall }}</p>
-                <p><strong>F1-Score:</strong> {{ rf_f1_score }}</p>
+                <p><strong>Precision:</strong> {{ report.rf_precision }}</p>
+                <p><strong>Recall:</strong> {{ report.rf_recall }}</p>
+                <p><strong>F1-Score:</strong> {{ report.rf_f1_score }}</p>
             </div>
-
+    
             <div class="flex-item prediction-data">
-                <P>XGBoost Model Performance</P>
+                <h3>XGBoost Model Performance</h3>
                 <p><strong>Accuracy:</strong> {{ xgb_accuracy }}%</p>
-                <p><strong>Precision:</strong> {{ xgb_precision }}</p>
-                <p><strong>Recall:</strong> {{ xgb_recall }}</p>
-                <p><strong>F1-Score:</strong> {{ xgb_f1_score }}</p>
+                <p><strong>Precision:</strong> {{ report.xgb_precision }}</p>
+                <p><strong>Recall:</strong> {{ report.xgb_recall }}</p>
+                <p><strong>F1-Score:</strong> {{ report.xgb_f1_score }}</p>
             </div>
         </div>
-
+    
+        <!-- Prediction Data Section -->
         <div class="flex-container">
             <div class="flex-item prediction-data">
-                <P>Prediction Data</P>
+                <h3>Prediction Data</h3>
                 <ul>
                     <li><strong>Non-Fraud (Random Forest)</strong>: {{ prediction_data.data.0 }} predictions</li>
                     <li><strong>Fraud (Random Forest)</strong>: {{ prediction_data.data.1 }} predictions</li>
@@ -193,21 +183,21 @@
                 </ul>
             </div>
         </div>
-
+    
         <div class="flex-container">
             <div class="flex-item">
-                <P>Random Forest Confusion Matrix</P>
+                <h3>Random Forest Confusion Matrix</h3>
                 <img src="data:image/png;base64,{{ cm_chart_rf }}" alt="Random Forest Confusion Matrix">
             </div>
             <div class="flex-item">
-                <P>XGBoost Confusion Matrix</P>
+                <h3>XGBoost Confusion Matrix</h3>
                 <img src="data:image/png;base64,{{ cm_chart_xgb }}" alt="XGBoost Confusion Matrix">
             </div>
         </div>
-
+    
         <div class="flex-container">
             <div class="flex-item">
-                <P>Random Forest Prediction Counts (Fraud vs Non-Fraud)</P>
+                <h3>Random Forest Prediction Counts (Fraud vs Non-Fraud)</h3>
                 <ul>
                     <li>Non-Fraud: {{ prediction_data.data.0 }} predictions</li>
                     <li>Fraud: {{ prediction_data.data.1 }} predictions</li>
@@ -220,7 +210,7 @@
             </div>
         
             <div class="flex-item">
-                <P>XGBoost Prediction Counts (Fraud vs Non-Fraud)</P>
+                <h3>XGBoost Prediction Counts (Fraud vs Non-Fraud)</h3>
                 <ul>
                     <li>Non-Fraud: {{ prediction_data.data.2 }} predictions</li>
                     <li>Fraud: {{ prediction_data.data.3 }} predictions</li>
@@ -233,22 +223,38 @@
             </div>
         </div>
     
-
+        <!-- Hyperparameters Section -->
         <div class="flex-container">
             <div class="flex-item prediction-data">
                 <h2>Model Hyperparameters</h2>
-                <P>Proposed Algorithm (XGBoost):</P>
+                <h3>Base Algorithm (Random Forest):</h3>
                 <ul>
-                    <li><strong>n_estimators:</strong> {{ xgboost_algorithm.n_estimators }}</li>
-                    <li><strong>max_depth:</strong> {{ xgboost_algorithm.max_depth }}</li>
-                    <li><strong>learning_rate:</strong> {{ xgboost_algorithm.learning_rate }}</li>
-                    <li><strong>subsample:</strong> {{ xgboost_algorithm.subsample }}</li>
-                    <li><strong>colsample_bytree:</strong> {{ xgboost_algorithm.colsample_bytree }}</li>
+                    <li>n_estimators: {{ base_algorithm.n_estimators }}</li>
+                    <li>max_depth: {{ base_algorithm.max_depth }}</li>
+                    <li>min_samples_split: {{ base_algorithm.min_samples_split }}</li>
+                </ul>
+                <h3>Proposed Algorithm (XGBoost):</h3>
+                <ul>
+                    <li>n_estimators: {{ xgboost_algorithm.n_estimators }}</li>
+                    <li>max_depth: {{ xgboost_algorithm.max_depth }}</li>
+                    <li>learning_rate: {{ xgboost_algorithm.learning_rate }}</li>
                 </ul>
             </div>
+            
+            <div class="flex-item prediction-data">
+                <h2>Performance Comparison: Accuracy Improvement</h2>
+                <p><strong>Base Algorithm (Random Forest) Accuracy:</strong> {{ rf_accuracy }}%</p>
+                <p><strong>Proposed Algorithm (XGBoost) Accuracy:</strong> {{ xgb_accuracy }}%</p>
+                <p><strong>Percentage Improvement:</strong> {{ performance_improvement|default:"N/A" }}%</p>
+                {% if performance_comparison_graph %}
+                    <img src="data:image/png;base64,{{ performance_comparison_graph }}" alt="Performance Comparison Chart">
+                {% else %}
+                    <p>No performance chart available.</p>
+                {% endif %}
+            </div>
         </div>
-
     </div>
-
+    
 </body>
+
 </html>
